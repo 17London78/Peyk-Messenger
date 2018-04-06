@@ -1,2 +1,4 @@
-# Peyk-Messenger
-A secure encrypted/authenticated messaging app written in python.
+# Peyk Messenger
+
+
+A secure authenticated encryption messaging application written in python.
