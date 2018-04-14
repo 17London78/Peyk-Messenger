@@ -17,12 +17,12 @@
   =========================================
 
 """
-import random
+from Crypto.Random import random
 from Files.Ciphers import RSA, AES
 
 
 class Cipher:
-    def __init__(self, data, username, client_name, pubKeyPath, c_pubkeypath,
+    def __init__(self, data, username, pubKeyPath, c_pubkeypath,
                  privKeyPath, privKeyPassword):
         self.dataTuple = data
         self.data = data
@@ -30,7 +30,6 @@ class Cipher:
         self.pubKeyPath = pubKeyPath
         self.privKeyPath = privKeyPath
         self.privKeyPassword = privKeyPassword
-        self.client_name = client_name
         self.c_pubkeypath = c_pubkeypath
 
 
@@ -61,7 +60,7 @@ class sendEnc(Cipher):
         confidential = (aesTuple[1], aesTuple[2], aesTuple[3])
         Csend = self._RSAencryptCycle(confidential, self.c_pubkeypath)
         Usend = self._RSAencryptCycle(confidential, self.pubKeyPath)
-        Message = ({self.username: signature}, {self.client_name: Csend,
+        Message = ({self.username: signature}, {'client': Csend,
                    self.username: Usend}, aesTuple[0])
         return Message
 
@@ -79,16 +78,20 @@ class recDec(Cipher):
 
     def _valid_step_one(self):
         try:
-            verifier = self.dataTuple[0][self.client_name]
+            verifier = self.dataTuple[0][self.username]
             idNum = 1
         except KeyError:
-            verifier = self.dataTuple[0][self.username]
+            verifier = self.dataTuple[0]
+            client_name = list(verifier.keys())[0]
+            verifier = verifier[client_name]
             idNum = 2
+            self.client_name = client_name
         return (verifier, idNum)
 
     def _valid_step_two(self, verifier):
         sign = RSA.Signature()
-        if verifier[1] == 1:
+        self.CUSwitch = verifier[1]
+        if self.CUSwitch == 2:
             signatureState = sign.verify('LSAssp', self.c_pubkeypath,
                                          verifier[0])
         else:
@@ -106,8 +109,12 @@ class recDec(Cipher):
         return data.decode('utf-8')
 
     def _keyDerivator(self, confidentialDict):
-        CorrectSent = confidentialDict[self.username]
-        confidential = self._RSAdecryptCycle(CorrectSent)
+        if self.CUSwitch == 2:
+            CorrectSent = confidentialDict['client']
+            confidential = self._RSAdecryptCycle(CorrectSent)
+        else:
+            CorrectSent = confidentialDict[self.username]
+            confidential = self._RSAdecryptCycle(CorrectSent)
         return confidential
 
     def _RSAdecryptCycle(self, Tuple):

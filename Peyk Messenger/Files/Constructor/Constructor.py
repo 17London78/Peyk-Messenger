@@ -29,7 +29,6 @@ class construct:
                  pubKeyPath,
                  privKeyPath,
                  privKeyPassword,
-                 client_name,
                  c_pubkeypath,
                  password=None):
         self.port = port
@@ -39,7 +38,6 @@ class construct:
         self.pubKeyPath = pubKeyPath
         self.privKeyPath = privKeyPath
         self.privKeyPassword = privKeyPassword
-        self.client_name = client_name
         self.c_pubkeypath = c_pubkeypath
         self.folderPath = os.path.dirname(os.path.abspath(__file__))
         self.createPath = self._pathFinder()
@@ -56,7 +54,6 @@ class construct:
         template = BasicFunctions.reader(os.path.join(self.folderPath, 'GUI.py'))
         GUI = template.format(self.port, self.ip, self.password, self.username,
                               self.pubKeyPath, self.privKeyPath,
-                              self.privKeyPassword, self.client_name,
-                              self.c_pubkeypath)
+                              self.privKeyPassword, self.c_pubkeypath)
         path = os.path.join(self.createPath, 'GUI.py')
         BasicFunctions.writer(path, GUI)

@@ -38,17 +38,13 @@ class SManager:
         server = ServerUtil.ServerUtil(path)
         return server
 
-    def addServer(self, name, ip, port, password):
-        self.serverU.add_server(name, ip, port, password)
+    def addServer(self, name, ip, port, password, client=None):
+        self.serverU.add_server(name, ip, port, password, client)
 
-    def changeSname(self, old_name, new_name):
-        self.serverU.change_S_name(old_name, new_name)
-
-    def changeSconnect(self, name, new_ip=None, new_port=None):
-        self.serverU.change_S_connect(name, new_ip, new_port)
-
-    def changeSpassword(self, name, password):
-        self.serverU.change_S_password(name, password)
+    def serverEdit(self, name, new_name=None, new_ip=None, new_port=None,
+                   new_password=None):
+        self.serverU.server_editor(name, new_name, new_ip, new_port,
+                                   new_password)
 
 
 class Server1st:

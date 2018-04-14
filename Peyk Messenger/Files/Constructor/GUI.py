@@ -40,8 +40,7 @@ def main():
     def send(event=None):
         data = my_msg.get()
         my_msg.set("")
-        encrypt = CipherManager.sendEnc(data, username,
-                                        client_name, pubKeyPath,
+        encrypt = CipherManager.sendEnc(data, username, pubKeyPath,
                                         c_pubkeypath, privKeyPath,
                                         privKeyPassword)
         data = encrypt.sendEnc()
@@ -67,10 +66,9 @@ def main():
                 else:
                     try:
                         encryptedData = pickle.loads(data)
-                        dec = CipherManager.recDec(
-                            encryptedData, username, client_name,
-                            pubKeyPath, c_pubkeypath,
-                            privKeyPath, privKeyPassword)
+                        dec = CipherManager.recDec(encryptedData, username,
+                                                   pubKeyPath, c_pubkeypath,
+                                                   privKeyPath, privKeyPassword)
                         plaintext = dec.decrypt()
                         msg_list.insert(tkinter.END, plaintext)
                     except (CipherManager.MessageTagDoesNotMatch or
@@ -90,7 +88,6 @@ def main():
     pubKeyPath = '{}'
     privKeyPath = '{}'
     privKeyPassword = '{}'
-    client_name = '{}'
     c_pubkeypath = '{}'
     client = socket.socket()
     client.connect((ip, port))

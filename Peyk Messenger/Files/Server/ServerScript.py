@@ -19,28 +19,29 @@
 """
 import socket
 import time
-import sys
 import threading
 
 
 class server:
-    def __init__(self, tcp_ip, tcp_port, buffer_size, username, password=None):
-        self.COUNTER = 0
-        self.CLIENTS = {}
-        self.password = password
-        self.servername = username
+    def __init__(self, tcp_ip, tcp_port, buffer_size, servername, password=None):
+        self.servername = servername
         self.ip = tcp_ip
+        if type(tcp_port) is str:
+            tcp_port = int(tcp_port)
         self.port = tcp_port
-        self.socket = []
-        if type(self.port) == str:
-            self.port = int(self.port)
+        if password is not None:
+            self.password = password
         self.buffer = buffer_size
+        self.socket = []
+        self.CLIENTS = {}
+        self.COUNTER = 0
 
     def startServer(self):
         try:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.ip, self.port))
-            server_socket.listen(5)
+            server_socket.listen(128)
             self.socket.append(server_socket)
             while 1:
                 client_socket, addr = server_socket.accept()
@@ -50,9 +51,7 @@ class server:
                 self._validator(client_socket, c_id)
 
         except socket.error:
-            print('Socket ERROR, terminating connection...')
-            time.sleep(0.5)
-            sys.exit()
+            raise ServerFatalError  # Do somthing after
 
     def _validator(self, client_socket, c_id):
         if self.password is None:
@@ -95,10 +94,10 @@ class server:
             self._transformerOne(client_socket, c_id)
         else:
             msg1 = """
-            ========================================================================
-            |+                            Incorrect password.                     +|
-            |+  This is a private server you need to provide password to connect  +|
-            ========================================================================
+========================================================================
+|+                            Incorrect password.                     +|
+|+  This is a private server you need to provide password to connect  +|
+========================================================================
 
 
                         """
@@ -115,9 +114,6 @@ class server:
             c_socket = self.CLIENTS[client]
             c_socket.send(data)
 
-    def _shutdown(self):
-        for client in self.CLIENTS:
-            c_socket = self.CLIENTS[client]
-            c_socket.close()
-        for Socket in self.socket:
-            Socket.close()
+
+class ServerFatalError(Exception):
+    pass

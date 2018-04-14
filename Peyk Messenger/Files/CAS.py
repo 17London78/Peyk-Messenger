@@ -71,9 +71,9 @@ class CAS:
         self.cas.add_client(username, self.path[3], ip, port, pubKeyPath,
                             password)
 
-    def editClient(self, username, ip=None, port=None, pubKey=None,
+    def editClient(self, username, name=None, ip=None, port=None, pubKey=None,
                    password=None):
-        self.cas.changeClient(username, self.path[3], ip, port, pubKey,
+        self.cas.changeClient(username, name, self.path[3], ip, port, pubKey,
                               password)
 
     def removeClient(self, username):

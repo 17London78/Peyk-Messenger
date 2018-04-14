@@ -46,51 +46,33 @@ class ServerUtil:
         with open(path, 'wb+') as handle:
             pickle.dump(self.servers, handle, pickle.HIGHEST_PROTOCOL)
 
-    def add_server(self, name, ip, port, password=None):
+    def add_server(self, name, ip, port, password=None, client=None):
         if name in self.servers:
             raise Auth.UsernameAlreadyExists(name)
-        if password is not None:
-            serverobject = Server(name, ip, port, password)
-        else:
-            serverobject = Server(name, ip, port)
+        serverobject = Server(name, ip, port, password, client)
         self.servers[name] = serverobject
         self._save_S_to_database()
 
-    def change_S_name(self, old_name, new_name):
-        if old_name in self.servers:
-            if new_name in self.servers:
-                raise Auth.UsernameAlreadyExists(new_name)
-            else:
-                serverobject = self.servers[old_name]
-                serverobject._changeName(new_name)
-                self.servers[new_name] = serverobject
-                del self.servers[old_name]
-                self._save_S_to_database()
-        else:
-            raise Auth.UsernameDoesNotExists(old_name)
-
-    def change_S_connect(self, name, i=None, p=None):
+    def server_editor(self, name=None, new_name=None, new_ip=None,
+                      new_port=None, new_password=None):
         if name in self.servers:
             serverobject = self.servers[name]
-            if (i is not None) and (p is not None):
-                serverobject._changeIp(i)
-                serverobject._changePort(p)
-            elif (i is not None) and (p is None):
-                serverobject._changeIp(i)
-            elif (i is None) and (p is not None):
-                serverobject._changePort(p)
+            if new_password is not None:
+                serverobject._changePassword(new_password)
+            if new_ip is not None:
+                serverobject._changeIp(new_ip)
+            if new_port is not None:
+                serverobject._changePort(new_port)
+            if new_name is not None:
+                if new_name in self.servers:
+                    raise Auth.UsernameAlreadyExists(new_name)
+                else:
+                    serverobject._changeName(new_name)
+                    self.servers[new_name] = serverobject
+                    del self.servers[name]
+            self._save_S_to_database()
         else:
             raise Auth.UsernameDoesNotExists(name)
-        self._save_S_to_database()
-
-    def change_S_password(self, name, password):
-        if password is not None:
-            if name in self.servers:
-                serverobject = self.servers[name]
-                serverobject._changePassword(password)
-            else:
-                raise Auth.UsernameDoesNotExists(name)
-            self._save_S_to_database()
 
     def delete_server(self, name):
         if name in self.servers:
@@ -99,9 +81,10 @@ class ServerUtil:
 
 
 class Server:
-    def __init__(self, name, ip, port, password=None):
+    def __init__(self, name, ip, port, password=None, client=None):
         self.name = name
         self.connect = [ip, port]
+        self.client = client
         if password is None:
             self.tag = 'public server'
         else:

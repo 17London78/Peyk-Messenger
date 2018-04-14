@@ -50,7 +50,7 @@ class app():
             "3": self._server_edit,
             "4": self._server_remove,
             "5": self._dashboard,
-            "8": self._quit
+            "6": self._quit
         }
         self._clientOptionsRun_choices = {
             "1": self._register_client,
@@ -61,8 +61,7 @@ class app():
         }
 
     def _intro_menu(self):
-        print(
-            """#### Welcome to Peyk Messenger v0.1 [ALPHA] ####
+        print("""#### Welcome to Peyk Messenger v0.1 [BETA] ####
 
 Select a number from this options:
 
@@ -79,6 +78,8 @@ Select a number from this options:
     def _run2(self):
         choice = input('Enter a valid choice:\n>')
         action = self.intro_choices.get(choice)
+        if action == self._quit:
+            action('i')
         if action:
             action()
         else:
@@ -140,7 +141,7 @@ Select a number from this options:
             password = input('Enter your password:\n>')
             try:
                 verify = self.CAS.signIn(username, password)
-            except:
+            except Auth.InvalidUsername or Auth.InvalidPassword:
                 time.sleep(0.5)
                 print("""
     ===================================
@@ -222,9 +223,8 @@ Select a number from this options:
         targetDatabase = self.server1st.server.serverU.servers
         if len(targetDatabase) == 0:
             print("You didn't setup any server configuration before:")
-            print('Setup a server now:')
             time.sleep(0.5)
-            self._register_server(self._connect_to_server, self.server1st)
+            self._dashboard()
         else:
             print('Which server do you want to connect?')
             server_data = self._serverChoice(targetDatabase)
@@ -235,11 +235,6 @@ Select a number from this options:
         time.sleep(0.25)
         servername = input("Enter server's name:\n>")
         ip = input("""Enter server's IPv4 addrress: \n>""")
-        if ip == '':
-            time.sleep(0.25)
-            print('You must enter an IPv4 address for server!')
-            time.sleep(1)
-            self._register_server(returnChoice, database)
         port = input("Enter server's port number:\n>")
         if port == '':
             time.sleep(0.25)
@@ -262,13 +257,16 @@ Select a number from this options:
 """)
         if password == '':
             password = None
-
+        client = input("""If it's a server for private E2E chat, enter client name:
+>""")
+        if client == '':
+            client = None
         try:
-            database.server.addServer(servername, ip, port, password)
+            database.server.addServer(servername, ip, port, password, client)
             time.sleep(0.5)
             print("""
 =======================================
-|+  'Server registred successfuly!'  +|
+|+  'Server registered successfuly!'  +|
 =======================================
 
 
@@ -299,7 +297,7 @@ Select a number from this options:
         if action:
             if action == self._register_server:
                 time.sleep(0.5)
-                action(self._beServerRun2, self.server2nd)
+                action(self._beServerRun, self.server2nd)
             elif action == (self._dashboard or self._quit):
                 time.sleep(0.5)
                 action()
@@ -328,17 +326,13 @@ Select a number from this options:
         time.sleep(0.25)
         if len(targetDatabase.servers) == 0:
             print("You didn't setup any server configuration before:")
-            print('Setup a server now:')
-            time.sleep(0.5)
-            self._register_server(self._beServerRun2, self.server2nd)
+            self._beServerRun2()
         else:
             print('Which server do you want to activate?')
-            print("""
-Keep in mind that the name of server MUST be the same as the client who wants to connect to you!
-""")
             time.sleep(0.5)
             server_data = self._server_tool(targetDatabase,
                                             self._choiceToConnect, 'connect')
+
             server = SelfServerAdmin.SSA(server_data, 10240, self.username,
                                          self.pubKeyPath, self.privKeyPath,
                                          self.password,
@@ -357,14 +351,18 @@ Keep in mind that the name of server MUST be the same as the client who wants to
     def GUICleaner(self):
         BasicFunctions.writer('Files/GUI.py', '#!/usr/bin/python3')
 
-    def _serverToclient(self, servername):
-        clientobject = self.CAS.cas.clients[servername]
-        return clientobject.pubKeyPath
+    def _serverToclient(self, client):
+        try:
+            clientobject = self.CAS.cas.clients[client]
+            return clientobject.pubKeyPath
+        except KeyError:
+            print("The client Associated with this server doesn't exist!")
+            print("You have to check to see if client name in server configured correctly.")
+            time.sleep(0.5)
+            self._beServerRun()
 
     def _barAnimation(self):
-        for i in range(0, 51):
-            print('=', end='')
-            time.sleep(0.0625)
+        time.sleep(0.5)
         print('\n#>>> Initalization completed <<<#\n')
 
     def _serverPrinter(self, targetDatabase):
@@ -408,9 +406,9 @@ Keep in mind that the name of server MUST be the same as the client who wants to
     def _choiceToConnect(self, serverobject):
         tag = serverobject.tag
         if tag == 'public server':
-            return (serverobject.connect, serverobject.name)
+            return (serverobject.connect, serverobject.client)
         else:
-            return (serverobject.connect, serverobject.name,
+            return (serverobject.connect, serverobject.client,
                     serverobject.password)
 
     def _server_edit(self, targetDatabase):
@@ -421,13 +419,16 @@ Keep in mind that the name of server MUST be the same as the client who wants to
         print()
         print("You can just press enter if you don't want to change")
         time.sleep(0.25)
-        ip = input("""Change server's IPv4 addrress: \n>""")
+        name = input("""Change server's new name: \n>""")
+        if name == '':
+            name = None
+        ip = input("""Change server's new IPv4 addrress: \n>""")
         if ip == '':
             ip = None
-        port = input("Change server's port number:\n>")
+        port = input("Change server's new port number:\n>")
         if port == '':
             port = None
-        password = input("""Change server's password:
+        password = input("""Change server's new password:
 >""")
         if len(password) > 0 and len(password) < 6:
             print("""
@@ -441,13 +442,17 @@ Keep in mind that the name of server MUST be the same as the client who wants to
         if password == '':
             password = None
 
-        targetDatabase.change_S_connect(server, ip, port)
-        targetDatabase.change_S_password(server, password)
+        client = input("""If it's a server for E2E chat, enter client name:
+>""")
+        if client == '':
+            client = None
+
+        targetDatabase.serverEdit(server, name, ip, port, password)
         time.sleep(0.5)
         print("""
-=============================================
-|+  'Server profile updated successfuly!'  +|
-=============================================
+===========================================
+|+  Server profile updated successfuly!  +|
+===========================================
 
 
             """)
@@ -461,12 +466,24 @@ Keep in mind that the name of server MUST be the same as the client who wants to
         targetDatabase.delete_server(server)
         time.sleep(0.5)
         print("""
-=============================================
-|+  'Server profile removed successfuly!'  +|
-=============================================
+===========================================
+|+  Server profile removed successfuly!  +|
+===========================================
 
 
             """)
+        time.sleep(0.5)
+        self._beServerRun()
+
+# Client Section
+# Connect to client
+
+    def _connect_to_client(self):
+        print('>>>> Client connect [window] <<<<')
+        print()
+        time.sleep(0.25)
+        self._client_tool(self._client_filter(), self._client_connect,
+                          self._dashboard2)
 
     def _client_tool(self, target, mainprocces, returnTarget):
         self.clientlist = list(self.CAS.cas.clients.keys())
@@ -516,20 +533,12 @@ Keep in mind that the name of server MUST be the same as the client who wants to
             time.sleep(1)
             self.client_connect_run()
 
-    def _connect_to_client(self):
-        print('>>>> Client connect [window] <<<<')
-        print()
-        time.sleep(0.25)
-        self._client_tool(self._client_filter(), self._client_connect,
-                          self._dashboard2)
-
     def _client_connect(self, client):
         clientobject = self.CAS.cas.clients[client]
-        construct = Constructor.construct(
-            clientobject.connect[0], clientobject.connect[1],
-            self.username, self.pubKeyPath, self.privKeyPath,
-            self.password, clientobject.username, clientobject.pubKeyPath,
-            clientobject.password)
+        Constructor.construct(clientobject.connect[0], clientobject.connect[1],
+                              self.username, self.pubKeyPath, self.privKeyPath,
+                              self.password, clientobject.pubKeyPath,
+                              clientobject.password)
         self._barAnimation()
         time.sleep(0.5)
         from Files import GUI
@@ -540,13 +549,14 @@ Keep in mind that the name of server MUST be the same as the client who wants to
         self.GUICleaner()
         self._dashboard()
 
+# Client options
+
     def _client_options(self):
         while True:
             self._clientOptionsShow()
             self._clientOptionsRun()
 
     def _clientOptionsRun(self):
-        targetDatabase = self.server2nd.server.serverU
         choice = input('Enter a valid choice:\n>')
         action = self._clientOptionsRun_choices.get(choice)
         if action:
@@ -573,27 +583,37 @@ Select a number from this options:
         print()
         time.sleep(0.25)
         username = input("Enter client's name:\n>")
-        ip = input("""Enter client's IPv4 address : (leave it empty if you don't have one, simply press ENTER))
+        pubKeyPath = input("Enter client's public key path:\n>")
+        time.sleep(0.5)
+        print('======================================================')
+        print()
+        time.sleep(0.5)
+        print('If you want to connect to this client fill items below')
+        print("if you don't want, then just press enter.")
+        time.sleep(0.5)
+        print()
+        print('======================================================')
+        time.sleep(0.5)
+        ip = input("""Enter client's IPv4 address :
 >""")
         if ip == '':
             ip = None
-        port = input("""Enter client's port number:(leave it empty if you don't have one, simply press ENTER)
+        port = input("""Enter client's port number:
 >""")
         if port == '':
             port = None
-        pubKeyPath = input("Enter client's public key path:\n>")
-        password = input(
-            """Enter client's password: (leave it empty if client doesn't support password)\n>"""
-        )
+        password = input("""
+Enter client's password: (leave it empty if client doesn't support password)
+>""")
         if password == '':
             password = None
         try:
             self.CAS.addClient(username, ip, port, pubKeyPath, password)
             time.sleep(0.5)
             print("""
-=======================================
-|+  'Client registred successfuly!'  +|
-=======================================
+=====================================
+|+  Client registered successfuly!  +|
+=====================================
 
 
             """)
@@ -624,32 +644,33 @@ Select a number from this options:
 
     def _client_edit(self):
         print('>>>> Client editing [window] <<<<')
-        print()
-        print("Leave it empty if you don't want to change it, simply press ENTER")
+        print("""
+Leave it empty if you don't want to change it, simply press ENTER""")
         time.sleep(0.25)
         self._client_tool(self.CAS.cas.clients, self._client_edit_process,
                           self._client_options)
 
     def _client_edit_process(self, username):
-        ip = input("""Enter client's IPv4 address : (leave it empty if you don't have one, simply press ENTER))
->""")
+        name = input("Enter client's new name address:\n>")
+        if name == '':
+            name = None
+        ip = input("Enter client's new IPv4 address:\n>")
         if ip == '':
             ip = None
-        port = input("""Enter client's port number:(leave it empty if you don't have one, simply press ENTER)
->""")
+        port = input("Enter client's new port number:\n>")
         if port == '':
             port = None
-        pubKeyPath = input("Change client's public key path:\n>")
+        pubKeyPath = input("Change client's new public key path:\n>")
         if pubKeyPath == '':
             pubKeyPath = None
-        password = input("""Change client's password:\n>""")
+        password = input("Change client's new password:\n>")
         if password == '':
             password = None
 
-        self.CAS.editClient(username, ip, port, pubKeyPath, password)
+        self.CAS.editClient(username, name, ip, port, pubKeyPath, password)
         print("""
 =============================================
-|+  'client profile updated successfuly!'  +|
+|+  Client profile updated successfuly!  +|
 =============================================
 
 
@@ -664,6 +685,15 @@ Select a number from this options:
 
     def _client_remove_process(self, username):
         self.CAS.removeClient(username)
+        time.sleep(0.5)
+        print("""
+===========================================
+|+  Client profile deleted successfuly!  +|
+===========================================
+
+
+""")
+        time.sleep(0.5)
         self._client_options()
 
     def _changePassword(self, counter=None):
@@ -685,7 +715,7 @@ Select a number from this options:
 
             """)
             time.sleep(0.5)
-            self._changePassword()
+            self._changePassword(counter)
         if old_password == new_password:
             time.sleep(0.5)
             counter += 1
@@ -696,14 +726,17 @@ Select a number from this options:
 
 
             """)
+            self._changePassword(counter)
         if counter > 4:
             print("""
-=========================================
-|+ Too many attempts! security alert!  +|
-=========================================
+==================================================
+|+ Too many attempts! security protocol alert!  +|
+==================================================
 
 
             """)
+            time.sleep(0.5)
+            self._signOut()
         try:
             self.CAS.changePassword(self.username, old_password, new_password)
         except Auth.NotLoggedInError:
@@ -722,25 +755,36 @@ Select a number from this options:
             time.sleep(0.5)
             self._changePassword(counter)
         print('Password has been changed successfuly!')
-        print('you have to signIn again')
+        print('you have to sign in again')
         print()
         time.sleep(0.5)
         self._signOut()
 
-    def _signOut(self):
-        print('>>>> Sign out [window] <<<<')
-        time.sleep(0.5)
+    def _signOut(self, mode=None):
+        if mode is not 'q':
+            print('>>>> Sign out [window] <<<<')
+            time.sleep(0.5)
         self.CAS.signOut(self.username)
-        print('Signing out ...')
-        print()
-        time.sleep(0.5)
+        if mode is not 'q':
+            print('Signing out ...')
+            print()
+            time.sleep(0.5)
         self.server1st = None
         self.server2nd = None
         self.clientlist = None
         self.username = None
         self.password = None
         self.pubKeyPath = None
-        self._run()
+        if mode is not 'q':
+            self._run()
 
-    def _quit(self):
-        sys.exit()
+    def _quit(self, mode=None):
+        if mode is not 'i':
+            self._signOut('q')
+            sys.exit()
+        else:
+            sys.exit()
+
+
+class RepeatLogin(Exception):
+    pass

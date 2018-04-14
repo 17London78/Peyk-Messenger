@@ -38,7 +38,6 @@ class SSA:
         self.privKeyPath = privKeyPath
         self.privKeyPassword = privKeyPassword
         self.server_data = server_data
-        self.client_name = self.server_data[1]
         self.c_pubkeypath = c_pubkeypath
         self.connect = self.server_data[0]
         self.password = None
@@ -53,14 +52,18 @@ class SSA:
                                    self.password)
 
     def _start_server(self):
-        threading.Thread(target=self.server.startServer).start()
-        self._construct()
+        try:
+            threading.Thread(target=self.server.startServer).start()
+            self._construct()
+        except ServerScript.ServerFatalError:
+            raise ServerAbort
 
     def _construct(self):
         Constructor.construct(self.connect[0], self.connect[1], self.username,
                               self.pubKeyPath, self.privKeyPath,
-                              self.privKeyPassword, self.client_name,
-                              self.c_pubkeypath, self.password)
+                              self.privKeyPassword, self.c_pubkeypath,
+                              self.password)
 
-    def _shutdown_server(self):
-        self.server._shutdown()
+
+class ServerAbort(Exception):
+    pass

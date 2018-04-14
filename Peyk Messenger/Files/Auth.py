@@ -47,21 +47,12 @@ class Authenticator:
         return users
 
     def _load_database(self, path1, path2):
-        U = os.path.isfile(path1)
-        C = os.path.isfile(path2)
-        if U or C:
-            if U and (C is False):
-                users = self._user_init(path1)
-                clients = {}
-            elif (U is False) and C:
-                users = {}
-                clients = self._CA(path2)
-            elif U and C:
-                users = self._user_init(path1)
-                clients = self._CA(path2)
-        else:
-            users = {}
-            clients = {}
+        users = {}
+        clients = {}
+        if os.path.isfile(path1):
+            users = self._user_init(path1)
+        if os.path.isfile(path2):
+            clients = self._CA(path2)
         return users, clients
 
     def _save_U_to_database(self):
@@ -114,7 +105,7 @@ class Authenticator:
             else:
                 raise ClientDoesNotExist(username)
 
-    def changeClient(self, username, databasePath, ip=None, port=None,
+    def changeClient(self, username, new_name, databasePath, ip=None, port=None,
                      pubKey=None, password=None):
         if username in self.clients:
             Client = self.clients[username]
@@ -126,6 +117,13 @@ class Authenticator:
                 self.changePassword(username, password, 'client')
             if pubKey is not None:
                 Client.pubKeyPath = Client._publicKey(pubKey, databasePath)
+            if new_name is not None:
+                if new_name in self.clients:
+                    raise UsernameAlreadyExists(new_name)
+                else:
+                    Client._changeName(new_name)
+                    self.clients[new_name] = Client
+                    del self.clients[username]
             self._save_C_to_database()
         else:
             raise ClientDoesNotExist(username)
@@ -142,12 +140,14 @@ class Authenticator:
             user = self.users[username]
         except KeyError:
             raise InvalidUsername(username)
+        if user.is_logged_in is False:
+            if not user._check_password(password):
+                raise InvalidPassword(username, user)
 
-        if not user._check_password(password):
-            raise InvalidPassword(username, user)
-
-        user.is_logged_in = True
-        return True
+            user.is_logged_in = True
+            return True
+        else:
+            raise UserAlreadySignedIn
 
     def is_logged_in(self, username):
         if username in self.users:
@@ -159,7 +159,8 @@ class User:
     def __init__(self, username, password, path):
         self.username = username
         self.password = self._encrypt_pw(password)
-        self.privpath, self.pubpath = self._generatRSA(username, self.password, path)
+        self.privpath, self.pubpath = self._generatRSA(username, self.password,
+                                                       path)
         self.is_logged_in = False
 
     def _encrypt_pw(self, password):
@@ -198,20 +199,27 @@ class Client:
                  password=None):
         self.username = username
         self.connect = [ip, port]
+        self.db = databasePath
         self.password = password
         if pubKeyPath is not None:
-            self.pubKeyPath = self._publicKey(pubKeyPath, databasePath)
+            self.pubKeyPath = self._publicKey(pubKeyPath)
         if self.password is not None:
             self.password = self._encrypt_pw(password)
 
-    def _publicKey(self, path, databasePath):
+    def _publicKey(self, path, mode=None):
         if os.path.exists(path):
             key = BasicFunctions.binaryReader(path)
+            if mode == 'e':
+                os.remove(path)
         else:
             raise PathDoesNotExist(self.username)
-        importpath = os.path.join(databasePath, '{}.pem'.format(self.username))
+        importpath = os.path.join(self.db, '{}.pem'.format(self.username))
         BasicFunctions.binaryWriter(importpath, key)
         return importpath
+
+    def _changeName(self, name):
+        self.username = name
+        self.pubKeyPath = self._publicKey(self.pubKeyPath, 'e')
 
     def _changeIp(self, ip):
         self.connect[0] = ip
