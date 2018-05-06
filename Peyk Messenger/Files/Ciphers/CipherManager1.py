@@ -21,11 +21,15 @@ from Files.Ciphers import RSA, AES
 class Cipher:
     """A base class for authenticated encryption and decryption"""
 
-    def __init__(self, username=None, pub_key=None, priv_key=None, priv_key_password=None, recipient_pubkey=None):
+    def __init__(self, data=None, username=None, pub_key=None, priv_key=None, priv_key_password=None, recipient_pubkey=None):
+        if type(data) == tuple:
+            self.dataTuple = data
+        elif type(data) == str:
+            self.data = data
         self.username = username
-        self.pub_key = pub_key
-        self.priv_key = priv_key
-        self.priv_key_password = priv_key_password
+        self.pubKey = pub_key
+        self.privKey = priv_key
+        self.privKeyPassword = priv_key_password
         self.r_pubkey = recipient_pubkey
         self.sign = 'LSAssp'
         self.enc_state = None
@@ -117,18 +121,15 @@ class Cipher:
 class Send(Cipher):
     """Send class for authenticated encryption"""
 
-    def __init__(self, username=None, pub_key=None, priv_key=None, priv_key_password=None, recipient_pubkey=None):
-        super(Send, self).__init__(self, username, pub_key, priv_key, priv_key_password, recipient_pubkey)
-        sign = RSA.Signature()
-        self.signature = sign.sign(self.sign, self.priv_key, self.priv_key_password, 'b')
-
-    def encrypt(self, data, mode):
+    def encrypt(self, mode):
         if mode is ('p2p' or 'p2g'):
-            data = '@{}: {}'.format(self.username, data)
+            data = '@{}: {}'.format(self.username, self.data)
             data = data.encode('utf-8')
-            signature = {self.username: self.signature}
+            sign = RSA.Signature()
+            signature = sign.sign(self.sign, self.privKey, self.privKeyPassword, 'b')
+            signature = {self.username: signature}
         elif mode is 'p2s':
-            data = data.encode('utf-8')
+            data = self. data.encode('utf-8')
         else:
             raise ModeIsNotValid
         aes = AES.aes()
@@ -144,7 +145,7 @@ class Send(Cipher):
             message = (key_dict, aes_tuple[0])
             return message
         elif mode is 'p2p':
-            key_dict = {self.username: self.pub_key, 'client': self.r_pubkey}
+            key_dict = {self.username: self.pubKey, 'client': self.r_pubkey}
             key_dict = self._rsa_encrypt(confidential, key_dict)
             message = (signature, key_dict, aes_tuple[0])
             return message

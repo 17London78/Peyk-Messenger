@@ -1,57 +1,35 @@
 #!/usr/bin/python3
 """
-  Peyk Secure Encrypted Messenger
-  GNU AGPL 3.0 Licensed
-  Copyright (C) 2018 17London78 Inc. (17London78 at protonmail.com)
-  =========================================
-  Islamic Republic of Iran Broadcasting University (IRIBU)
-  Faculty of Telecommunication Engineering
-  Author: Mohammad Mahdi Baghbani Pourvahid
-  Major: Telecommunication Engineering
-  <MahdiBaghbani@protonmail.com>
-  https://www.mahdibaghbanii.wordpress.com
-  https://www.github.com/MahdiBaghbani
-  Company: 17London78 Inc.
-  https://www.17London78.ir
-  https://www.github.com/17London78
-  =========================================
-
+Peyk Secure Encrypted Messenger
+GNU AGPL 3.0 Licensed
+Copyright (C) 2018 17London78 Inc.
+=========================================
 """
+__author__ = "Mohammad Mahdi Baghbani Pourvahid"
+__copyright__ = "Copyright (C) 2018 17London78 Inc."
+__credits__ = ["Jadi Mirmirani", "Xysun", "Al Sweigart"]
+__license__ = "AGPL 3.0"
+__maintainer__ = "Mohammad Mahdi Baghbani Pourvahid"
+__email__ = "MahdiBaghbani@Protonmail.com"
+__version__ = "0.1-beta"
+__status__ = "Development"
+
 import os
 from Files.Server import ServerUtil
-from Files.Assests import BasicFunctions
-
-MAIN_PATH = os.path.dirname(os.path.abspath(__file__))
-File, head = BasicFunctions.headTail(MAIN_PATH)
-DATA_PATH = os.path.join(head, 'Data')
-USER_DB_PATH = os.path.join(DATA_PATH, 'User Database')
-SM_DATA_PATH = os.path.join(USER_DB_PATH, 'serverMDB.txt')
-SU_DATA_PATH = os.path.join(USER_DB_PATH, 'serverUDB.txt')
 
 
-class SManager:
+class Server:
     def __init__(self, path):
         self.path = path
-        self.serverU = self._SERVERU_init(self.path)
+        self.server = ServerUtil.ServerUtil(path)
 
-    def _SERVERU_init(self, path):
-        server = ServerUtil.ServerUtil(path)
-        return server
+    def add_server(self, name, ip, port, client, password=None):
+        self.server.add_server(name, ip, port, client, password)
 
-    def addServer(self, name, ip, port, password, client=None):
-        self.serverU.add_server(name, ip, port, password, client)
-
-    def serverEdit(self, name, new_name=None, new_ip=None, new_port=None,
-                   new_password=None):
-        self.serverU.server_editor(name, new_name, new_ip, new_port,
-                                   new_password)
+    def edit_server(self, name, new_name=None, new_ip=None, new_port=None, new_password=None):
+        self.server.server_editor(name, new_name, new_ip, new_port, new_password)
 
 
-class Server1st:
-    def __init__(self, path=SM_DATA_PATH):
-        self.server = SManager(path)
-
-
-class Server2nd:
-    def __init__(self, path=SU_DATA_PATH):
-        self.server = SManager(path)
+def server_init(path, file):
+    path = os.path.join(path, file)
+    return Server(path)

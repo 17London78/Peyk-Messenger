@@ -1,53 +1,50 @@
 #!/usr/bin/python3
 """
-  Peyk Secure Encrypted Messenger
-  GNU AGPL 3.0 Licensed
-  Copyright (C) 2018 17London78 Inc. (17London78 at protonmail.com)
-  =========================================
-  Islamic Republic of Iran Broadcasting University (IRIBU)
-  Faculty of Telecommunication Engineering
-  Author: Mohammad Mahdi Baghbani Pourvahid
-  Major: Telecommunication Engineering
-  <MahdiBaghbani@protonmail.com>
-  https://www.mahdibaghbanii.wordpress.com
-  https://www.github.com/MahdiBaghbani
-  Company: 17London78 Inc.
-  https://www.17London78.ir
-  https://www.github.com/17London78
-  =========================================
-
+Peyk Secure Encrypted Messenger
+GNU AGPL 3.0 Licensed
+Copyright (C) 2018 17London78 Inc.
+=========================================
+A module for AES encrypt/decrypt using Crypto library
+=========================================
 """
-from Crypto.Cipher import AES
+__author__ = "Mohammad Mahdi Baghbani Pourvahid"
+__copyright__ = "Copyright (C) 2018 17London78 Inc."
+__credits__ = ["Jadi mirmirani, Xysun, Al Sweigart"]
+__license__ = "AGPL 3.0"
+__maintainer__ = "Mohammad Mahdi Baghbani Pourvahid"
+__email__ = "MahdiBaghbani@Protonmail.com"
+__version__ = "0.01-alpha"
+__status__ = "Development"
+
+from Crypto.Cipher import AES as _AES
 from Crypto.Hash import SHA3_256
 
 
-class aes:
-    def enc(self, data, key):
-        self._encrypt(data, key)
-        return (self.cipherdata, key.encode('utf_8'), self.nonce,
-                self.tag)
+class AES:
+    """ Encrypt/decrypt via AES-EAX-256bit_key method """
+
+    def enc(self, data, key, mode='d'):
+        key_256bit = self._keygen(key)
+        cipher = _AES.new(key_256bit, _AES.MODE_EAX)
+        cipher_nonce = cipher.nonce
+        cipher_data, cipher_tag = cipher.encrypt_and_digest(data)
+        if mode is 'd':
+            return cipher_data, key_256bit.encode('utf_8'), cipher_nonce, cipher_tag
+        if mode is 'r':
+            return cipher_nonce, cipher_tag, cipher_data
 
     def dec(self, data, nonce, tag, key):
-        self._decrypt(data, nonce, tag, key)
-        return self.plaindata
-
-    def _encrypt(self, data, key):
         key = self._keygen(key)
-        cipher = AES.new(key, AES.MODE_EAX)
-        self.nonce = cipher.nonce
-        self.cipherdata, self.tag = cipher.encrypt_and_digest(data)
-
-    def _decrypt(self, data, nonce, tag, key):
-        key = self._keygen(key)
-        decipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
-        plaindata = decipher.decrypt(data)
+        decipher = _AES.new(key, _AES.MODE_EAX, nonce=nonce)
+        plain_data = decipher.decrypt(data)
         try:
             decipher.verify(tag)
         except ValueError:
-            self.plaindata = False
-        self.plaindata = plaindata
+            plain_data = False
+        return plain_data
 
-    def _keygen(self, key):
+    @staticmethod
+    def _keygen(key):
         if type(key) is str:
             key = key.encode('utf-8')
         key_256bit = SHA3_256.new()

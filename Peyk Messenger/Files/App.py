@@ -1,50 +1,53 @@
 #!/usr/bin/python3
 """
-  Peyk Secure Encrypted Messenger
-  GNU AGPL 3.0 Licensed
-  Copyright (C) 2018 17London78 Inc. (17London78 at protonmail.com)
-  =========================================
-  Islamic Republic of Iran Broadcasting University (IRIBU)
-  Faculty of Telecommunication Engineering
-  Author: Mohammad Mahdi Baghbani Pourvahid
-  Major: Telecommunication Engineering
-  <MahdiBaghbani@protonmail.com>
-  https://www.mahdibaghbanii.wordpress.com
-  https://www.github.com/MahdiBaghbani
-  Company: 17London78 Inc.
-  https://www.17London78.ir
-  https://www.github.com/17London78
-  =========================================
-
+Peyk Secure Encrypted Messenger
+GNU AGPL 3.0 Licensed
+Copyright (C) 2018 17London78 Inc.
+=========================================
+A module for reading and writing to files
+with wrapping python methods.
+=========================================
 """
+__author__ = "Mohammad Mahdi Baghbani Pourvahid"
+__copyright__ = "Copyright (C) 2018 17London78 Inc."
+__credits__ = ["Jadi Mirmirani", "Xysun", "Al Sweigart"]
+__license__ = "AGPL 3.0"
+__maintainer__ = "Mohammad Mahdi Baghbani Pourvahid"
+__email__ = "MahdiBaghbani@Protonmail.com"
+__version__ = "0.1-beta"
+__status__ = "Development"
+
+import os
 import sys
+import errno
 import time
-from Files import CAS, Auth
-from Files.Server import ServerManager, SelfServerAdmin
+from Files.Ciphers import FileCrypt
 from Files.Constructor import Constructor
-from Files.Assests import BasicFunctions
+from Files.Server import ServerManager, SelfServerAdmin
+from Files.Assets import BasicFunctions, AccountManager, Auth, Texts
 
 
-class app():
-    def __init__(self):
-        self.CAS = CAS.CAS()
-        self.username = ''
+class App:
+    def __init__(self, system_info):
+        self.file_path = os.path.dirname(os.path.abspath(__file__))
+        self.log = os.path.join(self.file_path, 'Assets/System log.txt')
+        self.info = system_info
         self.intro_choices = {
-            "1": self._signUp,
-            "2": self._signIn,
+            "1": self._signup,
+            "2": self._signin,
             "3": self._quit
         }
         self.dashboard_choices = {
             "1": self._connect_to_server,
             "2": self._register_server,
-            "3": self._beServerRun,
+            "3": self._be_server_run,
             "4": self._connect_to_client,
             "5": self._client_options,
-            "6": self._changePassword,
-            "7": self._signOut,
+            "6": self._change_password,
+            "7": self._sign_out,
             "8": self._quit
         }
-        self._beServerRun_choices = {
+        self._be_server_run_choices = {
             "1": self._start_be_server,
             "2": self._register_server,
             "3": self._server_edit,
@@ -52,7 +55,7 @@ class app():
             "5": self._dashboard,
             "6": self._quit
         }
-        self._clientOptionsRun_choices = {
+        self._client_options_run_choices = {
             "1": self._register_client,
             "2": self._client_edit,
             "3": self._client_remove,
@@ -60,285 +63,330 @@ class app():
             "5": self._quit
         }
 
-    def _intro_menu(self):
-        print("""#### Welcome to Peyk Messenger v0.1 [BETA] ####
-
-Select a number from this options:
-
-1. signUp
-2. signIn
-3. Quit
-""")
+    @staticmethod
+    def _intro_menu():
+        print(Texts.intro_menu)
 
     def _run(self):
         while True:
             self._intro_menu()
-            self._run2()
+            self._intro_choice_selector()
 
-    def _run2(self):
-        choice = input('Enter a valid choice:\n>')
+    def _intro_choice_selector(self):
+        choice = input(Texts.enter_choice)
         action = self.intro_choices.get(choice)
         if action == self._quit:
             action('i')
         if action:
             action()
         else:
-            print("{} is Not a valid choice".format(choice))
+            print(Texts.not_valid.format(choice))
             print()
             time.sleep(0.5)
-            self._run2()
+            self._intro_choice_selector()
 
-    def _signUp(self):
-        if len(self.CAS.cas.users) == 0:
-            print('>>>> Sign up window <<<<')
-            print()
-            username = input('Enter your username:\n>')
-            password = input('Enter your password:\n>')
-            try:
-                self.CAS.signUp(username, password)
-                time.sleep(0.25)
-                print("""
-========================================================
-|+  Your account has been activated, log in please.  +|
-========================================================
+    def _path_builder(self, username, mode):
+        """ Creating directories for the group server """
 
-
-""")
-                print()
-                time.sleep(0.5)
-                self._signIn()
-            except Auth.PasswordTooShort:
-                time.sleep(0.5)
-                print("""
-===================================================
-|+          your password is TOO SHORT!           +|
-|+  your password must be at least 6 characters.  +|
-====================================================
-
-
-""")
-                time.sleep(0.5)
-                self._signUp()
+        # Moving to /Data
+        data_folder = os.path.join(self.file_path, 'Data')
+        # Check if '/Data' directory already exits
+        if os.path.isdir(data_folder):
+            # Creating a directory for a user
+            user_folder = os.path.join(data_folder, username)
+            # Create directory
+            if mode is 'a':
+                try:
+                    os.makedirs(user_folder)
+                    # Check if directory created.
+                    if os.path.isdir(user_folder):
+                        # Joining all requires paths:
+                        # Data/username/Servers >>> a folder to save server profiles
+                        # Data/username/Clients >>> a folder to save client profiles
+                        # Data/username/Keys >>> a folder to save user's private and public keys
+                        name_list = ['Servers', 'Clients', 'Keys']
+                        address_dict = dict()
+                        for name in name_list:
+                            address_dict[name] = os.path.join(user_folder, name)
+                        for key in address_dict:
+                            # If path already exists
+                            if os.path.isdir(address_dict[key]):
+                                # Go to next element
+                                pass
+                            # If path doesn't exist
+                            else:
+                                try:
+                                    # Create directory
+                                    os.makedirs(address_dict[key])
+                                # Handling errors
+                                except OSError as e:
+                                    if e.errno != errno.EEXIST:
+                                        raise
+                        address_dict['User'] = user_folder
+                        return address_dict
+                # Handling errors
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+            elif mode is 'b':
+                name_list = ['Servers', 'Clients', 'Keys']
+                address_dict = dict()
+                for name in name_list:
+                    address_dict[name] = os.path.join(user_folder, name)
+                address_dict['User'] = user_folder
+                return address_dict
+        # If path doesn't exist
         else:
+            # Create directory
+            try:
+                os.makedirs(data_folder)
+            # Handling errors
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+            # Start again
+            return self._path_builder(username, mode)
+
+    def _signup(self):
+        print(Texts.signup)
+        print()
+        time.sleep(0.5)
+        if os.path.isfile(self.log):
+            username_data = BasicFunctions.reader(self.log, 'p')
+        else:
+            username_data = dict()
+        username = input(Texts.username)
+        if username in username_data:
+            print(Texts.signup_acc_exists)
             time.sleep(0.5)
-            print("""
-=========================================================================
-|+  There is an account in app already, you can't register a new one!  +|
-|+                             you have to sign in                     +|
-=========================================================================
+            self._signup()
+        time.sleep(0.25)
+        password = input(Texts.password)
+        try:
+            path_dict = self._path_builder(username, 'a')
+            cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+            cas.signup(username, password)
+            time.sleep(0.25)
+            print(Texts.signup_successful)
+            print()
+            time.sleep(0.5)
+            FileCrypt.file_crypt(self.info, path_dict['User'], password, 'e')
+            username_data[username] = cas.cas.users[username].password
+            BasicFunctions.writer(self.log, username_data, 'p')
+            self._signin()
+        except Auth.PasswordTooShort:
+            time.sleep(0.5)
+            print(Texts.pass_short)
+            time.sleep(0.5)
+            self._signup()
 
-
-""")
-
-            self._run2()
-
-    def _signIn(self):
-        if len(self.CAS.cas.users) != 0:
-            print('>>>> Login [window] <<<<')
+    def _signin(self):
+        if os.path.isfile(self.log):
+            username_data = BasicFunctions.reader(self.log, 'p')
+        else:
+            username_data = dict()
+        if len(username_data) is not 0:
+            print(Texts.login)
             print()
             time.sleep(0.25)
-            username = input('Enter your username:\n>')
-            password = input('Enter your password:\n>')
-            try:
-                verify = self.CAS.signIn(username, password)
-            except Auth.InvalidUsername or Auth.InvalidPassword:
+            username = input(Texts.username)
+            if username in username_data:
+                password = input(Texts.password)
+                password_hash = BasicFunctions.hash_password(password, username)
+                if password_hash == username_data[username]:
+                    path_dict = self._path_builder(username, 'b')
+                    FileCrypt.file_crypt(self.info, path_dict['User'], password, 'd')
+                    cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+                    if cas.login(username, password):
+                        self.CAS = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+                        self.server1st = ServerManager.server_init(path_dict['Servers'], 'Group Servers.txt')
+                        self.server2nd = ServerManager.server_init(path_dict['Servers'], 'Self Servers.txt')
+                        self.client_list = list(self.CAS.cas.clients.keys())
+                        self.username = username
+                        self.password = self.CAS.cas.users[username].password
+                        self.pub_key_path = self.CAS.cas.users[username].pub_path
+                        self.priv_key_path = self.CAS.cas.users[username].priv_path
+                        time.sleep(0.25)
+                        print(Texts.login_success)
+                        time.sleep(0.25)
+                        self._dashboard()
+                    else:
+                        time.sleep(0.5)
+                        print(Texts.login_error)
+                        time.sleep(0.5)
+                        self._run()
+                else:
+                    time.sleep(0.5)
+                    print(Texts.login_error)
+                    time.sleep(0.5)
+                    self._run()
+            else:
+                print(Texts.login_wrong_username)
                 time.sleep(0.5)
-                print("""
-    ===================================
-    |+  WRONG username or password!  +|
-    ===================================
-
-
-    """)
-                time.sleep(0.5)
-                self._run()
-            if verify is True:
-                self.server1st = ServerManager.Server1st()
-                self.server2nd = ServerManager.Server2nd()
-                self.clientlist = list(self.CAS.cas.clients.keys())
-                self.username = username
-                self.password = self.CAS.cas.users[username].password
-                self.pubKeyPath = self.CAS.cas.users[username].pubpath
-                self.privKeyPath = self.CAS.cas.users[username].privpath
-                time.sleep(0.25)
-                print("""
-    ==================
-    |+  Logged in!  +|
-    ==================
-
-
-                    """)
-                time.sleep(0.25)
-                self._dashboard()
+                self._signin()
         else:
             time.sleep(0.25)
-            print("""
-    =============================================================
-    |+  There is not any accounts in app , you can't sign in!  +|
-    |+              you have to SIGN UP first!!!               +|
-    =============================================================
-
-
-    """)
+            print(Texts.login_no_acc)
             time.sleep(0.5)
-            self._run2()
+            self._intro_choice_selector()
 
     def _dashboard(self):
         while True:
             self._dashboard_menu()
-            self._dashboard2()
+            self._dashboard_choice_selector()
 
-    def _dashboard2(self):
-        choice = input('Enter a valid choice from dashboard menu:\n>')
+    def _dashboard_menu(self):
+        print(Texts.dashboard.format(self.username))
+
+    def _dashboard_choice_selector(self):
+        choice = input(Texts.enter_choice_dashboard)
         action = self.dashboard_choices.get(choice)
         if action:
             if action == self._register_server:
                 action(self._dashboard, self.server1st)
+            elif action == self._quit:
+                action('s')
             else:
                 time.sleep(0.5)
                 action()
         else:
-            print("{} is NOT a valid choice".format(choice))
+            print(Texts.not_valid.format(choice))
             print()
             time.sleep(0.5)
-            self._dashboard2()
+            self._dashboard_choice_selector()
 
-    def _dashboard_menu(self):
-        print("""#+++>>> Wlecome to your dashboard dear {} <<<+++#
-
-Select a number from this options:
-1. Connect to a server
-2. Register a server
-3. Become a server
-4. Connect to a client
-5. Client options
-6. Change password
-7. Sign out
-8. Quit
-""".format(self.username))
-
-    def _connect_to_server(self):
-        print('>>>> Connect to a Server [window] <<<<')
+    def _connect_to_server(self):  # TODO
+        print(Texts.connect_server)
         print()
-        targetDatabase = self.server1st.server.serverU.servers
-        if len(targetDatabase) == 0:
+        database = self.server1st.server.serverU.servers
+        if len(database) == 0:
             print("You didn't setup any server configuration before:")
             time.sleep(0.5)
             self._dashboard()
         else:
             print('Which server do you want to connect?')
-            server_data = self._serverChoice(targetDatabase)
+            # TODO
 
-    def _register_server(self, returnChoice, database):
-        print('>>>> Server registering [window] <<<<')
+    def _register_server(self, return_choice, database, mode):
+        print(Texts.register_server)
         print()
-        time.sleep(0.25)
-        servername = input("Enter server's name:\n>")
-        ip = input("""Enter server's IPv4 addrress: \n>""")
-        port = input("Enter server's port number:\n>")
-        if port == '':
-            time.sleep(0.25)
-            print()
-            print('You must enter a port number for server!')
-            print()
-            time.sleep(1)
-            self._register_server(returnChoice, database)
-        password = input("""Enter server's password:
-(leave it empty if it's a public server)
->""")
-        if len(password) > 0 and len(password) < 6:
-            print("""
-===================================================
-|+          your password is TOO SHORT!           +|
-|+  your password must be at least 6 characters.  +|
-====================================================
-
-
-""")
-        if password == '':
-            password = None
-        client = input("""If it's a server for private E2E chat, enter client name:
->""")
-        if client == '':
-            client = None
-        try:
-            database.server.addServer(servername, ip, port, password, client)
-            time.sleep(0.5)
-            print("""
-=======================================
-|+  'Server registered successfuly!'  +|
-=======================================
-
-
-            """)
-            time.sleep(0.5)
-            returnChoice()
-        except Auth.UsernameAlreadyExists:
-            time.sleep(0.5)
-            print("""
-==================================
-|+  Server name already exists  +|
-==================================
-
-
-            """)
-            time.sleep(0.5)
-            self._register_server(returnChoice, database)
-
-    def _beServerRun(self):
-        while True:
-            self._beServerRunShow()
-            self._beServerRun2()
-
-    def _beServerRun2(self):
-        targetDatabase = self.server2nd.server.serverU
-        choice = input('Enter a valid choice from menu:\n>')
-        action = self._beServerRun_choices.get(choice)
-        if action:
-            if action == self._register_server:
+        servername = input(Texts.server_name)
+        if mode is 'p2p':
+            client = input(Texts.server_client_name)
+            if client == '':
+                pass
+            port = input(Texts.server_port)
+            if port == '':
+                time.sleep(0.25)
+                print()
+                print(Texts.server_port_error)
+                print()
+                time.sleep(1)
+                self._register_server(return_choice, database, mode)
+            password = input()
+            if 0 < len(password) < 6:
+                print(Texts.pass_short)
+            if password == '':
+                password = None
+            try:
+                database.server.addServer(servername, port, password)
                 time.sleep(0.5)
-                action(self._beServerRun, self.server2nd)
-            elif action == (self._dashboard or self._quit):
+                print(Texts.server_reg_success)
+                time.sleep(0.5)
+                return_choice()
+            except Auth.UsernameAlreadyExists:
+                time.sleep(0.5)
+                print(Texts.sever_exists)
+                time.sleep(0.5)
+                self._register_server(return_choice, database, mode)
+        elif mode is 'p2g':
+            time.sleep(0.25)
+            ip = input(Texts.server_ip)
+            port = input(Texts.server_port)
+            if port == '':
+                time.sleep(0.25)
+                print()
+                print(Texts.server_port_error)
+                print()
+                time.sleep(1)
+                self._register_server(return_choice, database, mode)
+            password = input()
+            if 0 < len(password) < 6:
+                print(Texts.pass_short)
+            if password == '':
+                password = None
+            try:
+                database.server.addServer(servername, ip, port, password)
+                time.sleep(0.5)
+                print(Texts.server_reg_success)
+                time.sleep(0.5)
+                return_choice()
+            except Auth.UsernameAlreadyExists:
+                time.sleep(0.5)
+                print(Texts.sever_exists)
+                time.sleep(0.5)
+                self._register_server(return_choice, database, mode)
+
+    def _be_server_run(self):
+        while True:
+            self._be_server_run_show()
+            self._be_server_choice_selector()
+
+    @staticmethod
+    def _be_server_run_show():
+        print(Texts.be_server_menu)
+        time.sleep(0.5)
+
+    def _be_server_choice_selector(self):
+        database = self.server2nd.server.servers
+        choice = input(Texts.enter_choice)
+        action = self._be_server_run_choices.get(choice)
+        if action:
+            if action is self._register_server:
+                time.sleep(0.5)
+                action(self._be_server_run, self.server2nd, 'p2p')
+            elif action is self._quit:
+                action('s')
+            elif action is self._dashboard:
                 time.sleep(0.5)
                 action()
             else:
                 time.sleep(0.5)
-                action(targetDatabase)
+                action(database)
         else:
-            print("{} is NOT a valid choice".format(choice))
+            print(Texts.not_valid.format(choice))
             print()
             time.sleep(0.5)
-            self._beServerRun2()
+            self._be_server_choice_selector()
 
-    def _beServerRunShow(self):
-        print(""">>>> Become a Server [window] <<<<
+    def _start_be_server(self, database):
+        def choice_to_connect(server_object):
+            tag = server_object.tag
+            if tag is 'public server':
+                return server_object.connect, server_object.client
+            elif tag is 'private server':
+                return server_object.connect, server_object.client, server_object.password
 
-Select a number from this options:
-1. Start a server
-2. Register a server
-3. Edit a server
-4. Delete a server
-5. Back to dashboard
-6. Quit
-    """)
-
-    def _start_be_server(self, targetDatabase):
+        def server_to_client(client):
+            try:
+                client_object = self.CAS.cas.clients[client]
+                return client_object.pubKeyPath
+            except KeyError:
+                print("The client Associated with this server doesn't exist!")
+                print("You have to check to see if client name in server configured correctly.")
+                time.sleep(0.5)
         time.sleep(0.25)
-        if len(targetDatabase.servers) == 0:
-            print("You didn't setup any server configuration before:")
-            self._beServerRun2()
-        else:
-            print('Which server do you want to activate?')
+        if len(database.servers) is 0:
+            print(Texts.server_no_profile)
             time.sleep(0.5)
-            server_data = self._server_tool(targetDatabase,
-                                            self._choiceToConnect, 'connect')
-
-            server = SelfServerAdmin.SSA(server_data, 10240, self.username,
-                                         self.pubKeyPath, self.privKeyPath,
-                                         self.password,
-                                         self._serverToclient(server_data[1]))
+            self._be_server_choice_selector()
+        else:
+            print(Texts.server_start)
+            time.sleep(0.5)
+            server_data = self._server_tool(database, choice_to_connect, 'connect')
+            server = SelfServerAdmin.SSA(server_data, 10240, self.username, self.pubKeyPath, self.privKeyPath, self.password, self._serverToclient(server_data[1]))
             server._start_server()
-            self._barAnimation()
+            print('\n#>>> Initialization completed <<<#\n')
             time.sleep(0.5)
             from Files import GUI
             GUI.main()
@@ -351,70 +399,62 @@ Select a number from this options:
     def GUICleaner(self):
         BasicFunctions.writer('Files/GUI.py', '#!/usr/bin/python3')
 
-    def _serverToclient(self, client):
+    def _server_to_client(self, client):
         try:
-            clientobject = self.CAS.cas.clients[client]
-            return clientobject.pubKeyPath
+            client_object = self.CAS.cas.clients[client]
+            return client_object.pubKeyPath
         except KeyError:
             print("The client Associated with this server doesn't exist!")
             print("You have to check to see if client name in server configured correctly.")
             time.sleep(0.5)
-            self._beServerRun()
+            self._be_server_run()
 
-    def _barAnimation(self):
-        time.sleep(0.5)
-        print('\n#>>> Initalization completed <<<#\n')
+    @staticmethod
+    def _server_tool(database, main_process, mode=None):
+        def server_printer(d):
+            d = d.servers
+            s_dic = dict()
+            counter = 1
+            for server in d:
+                s_dic[str(counter)] = server
+                print('{}. {}'.format(counter, server))
+                counter += 1
+            return s_dic
 
-    def _serverPrinter(self, targetDatabase):
-        targetDatabase = targetDatabase.servers
-        counter = 1
-        server_dic = {}
-        for server in targetDatabase:
-            server_dic[str(counter)] = server
-            print('{}. {}'.format(counter, server))
-            counter += 1
-        return server_dic
-
-    def _server_tool(self, targetDatabase, mainprocess=None, mode=None):
-        time.sleep(0.5)
-        server_dic = self._serverPrinter(targetDatabase)
-        server_data = self._serverChoice(targetDatabase, server_dic,
-                                         mainprocess, mode)
-        if mode == 'connect':
-            return server_data
-
-    def _serverChoice(self,
-                      targetDatabase,
-                      server_dic,
-                      mainprocess=None,
-                      mode=None):
-        choice = input('Enter a valid choice from server list:\n>')
-        server = server_dic.get(choice)
-        if server:
-            if mode is 'connect':
-                targetDatabase = targetDatabase.servers
-                serverobject = targetDatabase[server]
-                return mainprocess(serverobject)
+        def server_choice(d, s_d, m_p, m=None):
+            choice = input('Enter a valid choice from server list:\n>')
+            server = s_d.get(choice)
+            if server:
+                if mode is 'connect':
+                    d = d.servers
+                    server_object = d[server]
+                    return m_p(server_object)
+                else:
+                    m_p(database, server)
             else:
-                mainprocess(targetDatabase, server)
+                print("{} is NOT a valid choice".format(choice))
+                print()
+                time.sleep(0.5)
+                server_choice(d, s_d, m_p, m)
+        time.sleep(0.5)
+        server_dic = server_printer(database)
+        if mode == 'connect':
+            return server_choice(database, server_dic, main_process, mode)
         else:
-            print("{} is NOT a valid choice".format(choice))
-            print()
-            time.sleep(0.5)
-            self._serverChoice(targetDatabase, server_dic, mainprocess, mode)
+            server_choice(database, server_dic, main_process, mode)
 
-    def _choiceToConnect(self, serverobject):
-        tag = serverobject.tag
-        if tag == 'public server':
-            return (serverobject.connect, serverobject.client)
-        else:
-            return (serverobject.connect, serverobject.client,
-                    serverobject.password)
+    @staticmethod
+    def _choice_to_connect(server_object):
+        tag = server_object.tag
+        if tag is 'public server':
+            return server_object.connect, server_object.client
+        elif tag is 'private server':
+            return server_object.connect, server_object.client, server_object.password
 
-    def _server_edit(self, targetDatabase):
-        self._server_tool(targetDatabase, self._server_edit_process)
+    def _server_edit(self, database):
+        self._server_tool(database, self._server_edit_process)
 
-    def _server_edit_process(self, targetDatabase, server):
+    def _server_edit_process(self, database, server):
         print('>>>> Server editing [window] <<<<')
         print()
         print("You can just press enter if you don't want to change")
@@ -447,7 +487,7 @@ Select a number from this options:
         if client == '':
             client = None
 
-        targetDatabase.serverEdit(server, name, ip, port, password)
+        database.serverEdit(server, name, ip, port, password)
         time.sleep(0.5)
         print("""
 ===========================================
@@ -457,7 +497,7 @@ Select a number from this options:
 
             """)
         time.sleep(0.5)
-        self._beServerRun()
+        self._be_server_run()
 
     def _server_remove(self, targetDatabase):
         self._server_tool(targetDatabase, self._server_remove_process)
@@ -483,7 +523,7 @@ Select a number from this options:
         print()
         time.sleep(0.25)
         self._client_tool(self._client_filter(), self._client_connect,
-                          self._dashboard2)
+                          self._dashboard_choice_selector)
 
     def _client_tool(self, target, mainprocces, returnTarget):
         self.clientlist = list(self.CAS.cas.clients.keys())
@@ -696,7 +736,7 @@ Leave it empty if you don't want to change it, simply press ENTER""")
         time.sleep(0.5)
         self._client_options()
 
-    def _changePassword(self, counter=None):
+    def _change_password(self, counter=None):
         counter = counter
         if counter is None:
             counter = 0
@@ -715,18 +755,18 @@ Leave it empty if you don't want to change it, simply press ENTER""")
 
             """)
             time.sleep(0.5)
-            self._changePassword(counter)
+            self._change_password(counter)
         if old_password == new_password:
             time.sleep(0.5)
             counter += 1
             print("""
-===================================================
-|+  New password must be diffrent than old one!  +|
-===================================================
+========================================================
+|+  New password must be different than the old one!  +|
+========================================================
 
 
             """)
-            self._changePassword(counter)
+            self._change_password(counter)
         if counter > 4:
             print("""
 ==================================================
@@ -753,36 +793,35 @@ Leave it empty if you don't want to change it, simply press ENTER""")
 
             """)
             time.sleep(0.5)
-            self._changePassword(counter)
+            self._change_password(counter)
         print('Password has been changed successfuly!')
         print('you have to sign in again')
         print()
         time.sleep(0.5)
-        self._signOut()
+        self._sign_out()
 
-    def _signOut(self, mode=None):
+    def _sign_out(self, mode=None):
         if mode is not 'q':
             print('>>>> Sign out [window] <<<<')
             time.sleep(0.5)
-        self.CAS.signOut(self.username)
-        if mode is not 'q':
             print('Signing out ...')
             print()
             time.sleep(0.5)
+        self.CAS.signOut(self.username)
         self.server1st = None
         self.server2nd = None
-        self.clientlist = None
+        self.client_list = None
         self.username = None
         self.password = None
         self.pubKeyPath = None
         if mode is not 'q':
             self._run()
 
-    def _quit(self, mode=None):
-        if mode is not 'i':
-            self._signOut('q')
+    def _quit(self, mode):
+        if mode is 'i':
             sys.exit()
-        else:
+        elif mode is 's':
+            self._sign_out('q')
             sys.exit()
 
 
