@@ -15,8 +15,8 @@ __version__ = "0.1-beta"
 __status__ = "Development"
 
 import os
-from Files.Ciphers import RSA
-from Files.Assets import BasicFunctions
+from ..Ciphers import RSA
+from ..Assets import BasicFunctions
 
 
 class Authenticator:
@@ -65,22 +65,20 @@ class Authenticator:
         else:
             raise UsernameDoesNotExists(username)
 
-    def add_client(self, client_name, ip=None, port=None, pub_key_path=None, password=None):
+    def add_client(self, client_name, ip, port, pub_key_path):
         if client_name in self.clients:
             raise UsernameAlreadyExists(client_name)
-        client_object = Client(client_name, ip, port, pub_key_path, password)
+        client_object = Client(client_name, ip, port, pub_key_path)
         self.clients[client_name] = client_object
         self._save_c_to_database()
 
-    def edit_client(self, client_name, new_name, ip=None, port=None, pub_key_path=None, password=None):
+    def edit_client(self, client_name, new_name, ip, port, pub_key_path):
         if client_name in self.clients:
             client = self.clients[client_name]
             if ip is not None:
                 client.change_ip(ip)
             if port is not None:
                 client.change_port(port)
-            if password is not None:
-                client.change_password(password)
             if pub_key_path is not None:
                 client.public_key = client.public_key(pub_key_path)
             if new_name is not None:
@@ -124,7 +122,7 @@ class User:
     def __init__(self, username, password, path):
         self.username = username
         self.password = BasicFunctions.hash_password(password, username)
-        self.priv_path, self.pub_path = self._generate_rsa(username, self.password, path)
+        self. pub_key, self.priv_key, self.pub_path, self.priv_path = self._generate_rsa(username, self.password, path)
         self.is_logged_in = False
 
     def check_password(self, password):
@@ -142,30 +140,26 @@ class User:
 
     @staticmethod
     def _generate_rsa(username, password, path):
-        rsa = RSA.rsa()
+        rsa = RSA.RSA()
         priv_path = os.path.join(path, '{}_private.pem'.format(username))
         pub_path = os.path.join(path, '{}_public.pem'.format(username))
         rsa.export(priv_path, pub_path, password)
-        return priv_path, pub_path
+        return rsa.public, rsa.private, pub_path, priv_path
 
 
 class Client:
-    def __init__(self, client_name, ip=None, port=None, pub_key_path=None, password=None):
+    def __init__(self, client_name, ip, port, pub_key_path):
         self.client_name = client_name
         self.connect = [ip, port]
         if pub_key_path is not None:
             self.public_key = self._public_key(pub_key_path)
         elif pub_key_path is None:
             self.public_key = None
-        if password is not None:
-            self.password = BasicFunctions.hash_password(password)
-        elif password is None:
-            self.password = None
 
     def _public_key(self, path, mode=None):
         if os.path.exists(path):
             key = BasicFunctions.reader(path, 'b')
-            if mode == 'e':
+            if mode is 'e':
                 os.remove(path)
             return key
         else:
@@ -179,9 +173,6 @@ class Client:
 
     def change_port(self, port):
         self.connect[1] = port
-
-    def change_password(self, new_password):
-        self.password = BasicFunctions.hash_password(new_password)
 
 
 class AuthException(Exception):

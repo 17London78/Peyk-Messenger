@@ -31,7 +31,6 @@ class AES:
         cipher = _AES.new(key_256bit, _AES.MODE_EAX)
         cipher_nonce = cipher.nonce
         cipher_data, cipher_tag = cipher.encrypt_and_digest(data)
-
         Credentials = namedtuple('Credentials', 'cipher key nonce tag')
         if mode is 'd':
             return Credentials(cipher_data, key_256bit, cipher_nonce, cipher_tag)
@@ -56,3 +55,15 @@ class AES:
         key_256bit.update(key)
         key = key_256bit.digest()
         return key
+
+def main():
+    A = AES()
+    data = 'Hello World', 'I love NY', 'Python is great'
+    key = 'Mamamia', 'lovely', 'Jadi'
+    for i in range(0, 3):
+        c = A.enc(data[i], key[i])
+        print(c)
+        print()
+
+if __name__ == '__main__':
+    main()

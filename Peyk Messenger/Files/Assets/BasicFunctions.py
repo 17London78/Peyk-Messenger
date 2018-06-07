@@ -21,6 +21,7 @@ import os
 import socket
 import pickle
 from Crypto.Hash import SHA3_512
+from Crypto.Random import random
 
 
 def ip_finder():
@@ -33,6 +34,20 @@ def ip_finder():
     s.shutdown(socket.SHUT_RDWR)
     s.close()
     return ip
+
+
+def password_gen():
+    """A random password generator"""
+    letters = '!$%&0123456789<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZmnopqrstuvwxyz'
+    letters = list(letters)
+    # Using Crypto.Random library for cryptographic random function
+    random.shuffle(letters)
+    letters = ''.join(letters)
+    password = ''
+    pass_length = random.randint(59, 236)
+    for i in range(pass_length):
+        password += random.choice(letters)
+    return password
 
 
 def hash_password(password, name=None):
@@ -118,12 +133,15 @@ def writer(path, data, mode):
         crypt_writer(path, data)
 
 
-def head_tail(path):
+def head_tail(path, mode=None):
     head, tail = os.path.split(path)
-    return head, tail
+    if mode is 'h':
+        return head
+    if mode is 't':
+        return tail
+    else:
+        return head, tail
 
 
 def up_folder(path):
-    head, tail = head_tail(path)
-    head, tail = head_tail(head)
-    return head
+    return head_tail(head_tail(path, 'h'), 'h')

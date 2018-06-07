@@ -18,8 +18,7 @@ from Files import App
 
 
 def main():
-    app = App.app()
-    app.run()
+    App().run()
 
 
 if __name__ == '__main__':

@@ -22,22 +22,22 @@ from Crypto.PublicKey import RSA as _RSA
 from Crypto.Signature import pss
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Hash import SHA3_512
-from Files.Assests import BasicFunctions
+from ..Assets import BasicFunctions
 
 
 class RSA:
     """ Creates a set of private and public keys """
 
     def __init__(self):
-        self.private, self.public = self._generator()
+        self.public, self.private = self._generator()
 
     @staticmethod
     def _generator():
         """ Generates a random set of keys """
 
-        private_set = _RSA.generate(2048)
+        private_set = _RSA.generate(4096)
         public_key = private_set.publickey()
-        return private_set, public_key
+        return public_key, private_set
 
     def export(self, pub_path, priv_path, password=0000):
         """ Writes private and public keys to PEM(.pem) file"""

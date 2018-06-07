@@ -26,8 +26,22 @@ class Server:
     def add_server(self, name, ip, port, client, password=None):
         self.server.add_server(name, ip, port, client, password)
 
+    def access_server(self, name):
+        server = self.server.access_server(name)
+        return server
+
+    def add_key(self, name, key_one=None, key_two=None):
+        self.server.add_key(name, key_one, key_two)
+
     def edit_server(self, name, new_name=None, new_ip=None, new_port=None, new_password=None):
         self.server.server_editor(name, new_name, new_ip, new_port, new_password)
+
+    def query(self, name, username):
+        status = self.server.query(name, username)
+        return status
+
+    def update(self, name, username):
+        self.server.update(name, username)
 
 
 def server_init(path, file):

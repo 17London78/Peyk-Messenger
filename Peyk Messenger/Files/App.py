@@ -21,10 +21,10 @@ import os
 import sys
 import errno
 import time
-from Files.Ciphers import FileCrypt
-from Files.Constructor import Constructor
-from Files.Server import ServerManager, SelfServerAdmin
-from Files.Assets import BasicFunctions, AccountManager, Auth, Texts
+from .Ciphers import FileCrypt
+from .Constructor import Constructor
+from .Server import ServerManager, SelfServerAdmin
+from .Assets import BasicFunctions, AccountManager, Auth, Texts
 
 
 class App:
@@ -98,6 +98,11 @@ class App:
             if mode is 'a':
                 try:
                     os.makedirs(user_folder)
+                # Handling errors
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise  # TODO
+                else:
                     # Check if directory created.
                     if os.path.isdir(user_folder):
                         # Joining all requires paths:
@@ -121,13 +126,9 @@ class App:
                                 # Handling errors
                                 except OSError as e:
                                     if e.errno != errno.EEXIST:
-                                        raise
+                                        raise  # TODO
                         address_dict['User'] = user_folder
                         return address_dict
-                # Handling errors
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        raise
             elif mode is 'b':
                 name_list = ['Servers', 'Clients', 'Keys']
                 address_dict = dict()
@@ -143,7 +144,7 @@ class App:
             # Handling errors
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise
+                    raise  # TODO
             # Start again
             return self._path_builder(username, mode)
 
@@ -193,7 +194,7 @@ class App:
             if username in username_data:
                 password = input(Texts.password)
                 password_hash = BasicFunctions.hash_password(password, username)
-                if password_hash == username_data[username]:
+                if password_hash is username_data[username]:
                     path_dict = self._path_builder(username, 'b')
                     FileCrypt.file_crypt(self.info, path_dict['User'], password, 'd')
                     cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
@@ -203,9 +204,9 @@ class App:
                         self.server2nd = ServerManager.server_init(path_dict['Servers'], 'Self Servers.txt')
                         self.client_list = list(self.CAS.cas.clients.keys())
                         self.username = username
-                        self.password = self.CAS.cas.users[username].password
-                        self.pub_key_path = self.CAS.cas.users[username].pub_path
-                        self.priv_key_path = self.CAS.cas.users[username].priv_path
+                        user = self.CAS.cas.users[username]
+                        self.password = user.password
+                        self.user_keys = user.pub_key, user.priv_key
                         time.sleep(0.25)
                         print(Texts.login_success)
                         time.sleep(0.25)

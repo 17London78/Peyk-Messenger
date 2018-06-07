@@ -18,8 +18,8 @@ __version__ = "0.1-beta"
 __status__ = "Development"
 
 import glob
-from Files.Assets import BasicFunctions
-from Files.Ciphers import AES
+from ..Assets import BasicFunctions
+from ..Ciphers import AES
 
 
 def file_crypt(info, path, password, mode):

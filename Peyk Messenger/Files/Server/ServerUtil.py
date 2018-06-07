@@ -15,7 +15,7 @@ __version__ = "0.1-beta"
 __status__ = "Development"
 
 import os
-from Files.Assets import BasicFunctions
+from ..Assets import BasicFunctions
 
 
 class ServerUtil:
@@ -39,6 +39,13 @@ class ServerUtil:
         self.servers[name] = server_object
         self._save_s_to_database()
 
+    def access_server(self, name):
+        if name in self.servers:
+            server_object = self.servers[name]
+            return server_object
+        else:
+            raise UsernameDoesNotExists(name)
+
     def server_editor(self, name, new_name, new_ip, new_port, new_password):
         if name in self.servers:
             server_object = self.servers[name]
@@ -59,10 +66,39 @@ class ServerUtil:
         else:
             raise UsernameDoesNotExists(name)
 
+    def add_key(self, name, key_one, key_two):
+        if name in self.servers:
+            server_object = self.servers[name]
+            server_object.add_key(key_one, key_two)
+            self._save_s_to_database()
+        else:
+            raise UsernameDoesNotExists(name)
+
+    def update(self, name, username):
+        if name in self.servers:
+            server_object = self.servers[name]
+            server_object.status[username] = 1
+            self._save_s_to_database()
+        else:
+            raise UsernameDoesNotExists(name)
+
+    def query(self, name, username):
+        if name in self.servers:
+            server_object = self.servers[name]
+            try:
+                status = server_object.status[username]
+                return status
+            except KeyError:
+                return 0
+        else:
+            raise UsernameDoesNotExists(name)
+
     def delete_server(self, name):
         if name in self.servers:
             del self.servers[name]
             self._save_s_to_database()
+        else:
+            raise UsernameDoesNotExists(name)
 
 
 class Server:
@@ -76,6 +112,14 @@ class Server:
         else:
             self.password = BasicFunctions.hash_password(password)
             self.tag = 'private server'
+        self.keys = [None, None]
+        self.status = dict()
+
+    def add_key(self, key_one, key_two):
+        if key_one is not None:
+            self.keys[0] = key_one
+        if key_two is not None:
+            self.keys[1] = key_two
 
     def change_name(self, name):
         self.name = name
