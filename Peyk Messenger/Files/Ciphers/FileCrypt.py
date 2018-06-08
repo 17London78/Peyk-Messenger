@@ -22,28 +22,41 @@ from ..Assets import BasicFunctions
 from ..Ciphers import AES
 
 
-def file_crypt(info, path, password, mode):
-    def path_finder(i, p, m):
-        if m is 'e':
-            t = 'txt'
-        elif m is 'd':
-            t = 'aes'
+def file_crypt(sys_info, path, password, mode):
+    def path_finder(i, p, e):
+        ext = e
         if i is 'Windows':
-            p = '{}\\**\\*.{}'.format(p, t)
+            files = '{}\\**\\*.{}'.format(p, ext)
         elif i is 'Linux':
-            p = '{}/**/*.{}'.format(p, t)
-        return glob.glob(p, recursive=True)
-    file_list = path_finder(info, path, mode)
-    aes = AES.AES()
-    if mode is 'e':
+            files = '{}/**/*.{}'.format(p, ext)
+        return glob.glob(files, recursive=True)
+
+    def encryptor(file_list, ext1, ext2):
         for file in file_list:
             data = BasicFunctions.reader(file, 'b')
+            BasicFunctions.deleter(file)
             encrypted_data = aes.enc(data, password, 'r')
-            file = file.replace('txt', 'aes')
+            file = file.replace(ext1, ext2)
             BasicFunctions.writer(file, encrypted_data, 'c')
-    elif mode is 'd':
+
+    def decryptor(file_list, ext1, ext2):
         for file in file_list:
             data = BasicFunctions.reader(file, 'c')
+            BasicFunctions.deleter(file)
             plain_data = aes.dec(data[2], data[0], data[1], password)
-            file = file.replace('aes', 'txt')
+            file = file.replace(ext1, ext2)
             BasicFunctions.writer(file, plain_data, 'b')
+
+    aes = AES.AES()
+    if mode is 'e':
+        txt_list = path_finder(sys_info, path, 'txt')
+        pem_list = path_finder(sys_info, path, 'pem')
+        encryptor(txt_list, 'txt', 'taes')
+        encryptor(pem_list, 'pem', 'paes')
+
+    elif mode is 'd':
+        taes_list = path_finder(sys_info, path, 'taes')
+        paes_list = path_finder(sys_info, path, 'paes')
+        decryptor(taes_list, 'taes', 'txt')
+        decryptor(paes_list, 'paes', 'txt')
+

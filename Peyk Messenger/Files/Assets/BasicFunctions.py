@@ -20,6 +20,7 @@ __status__ = "Development"
 import os
 import socket
 import pickle
+from ..Ciphers import RSA
 from Crypto.Hash import SHA3_512
 from Crypto.Random import random
 
@@ -56,9 +57,18 @@ def hash_password(password, name=None):
     if name is None:
         hash_string = password
     else:
-        hash_string = (name + password)
+        hash_string = password + 'SaLty P@s$WoRDS'
     hash_string = hash_string.encode('utf8')
     return SHA3_512.new(hash_string).hexdigest()
+
+
+def rsa_gen(username, rsa_strength, password, path):
+
+    rsa = RSA.RSA(rsa_strength)
+    priv_path = os.path.join(path, '{}_private.pem'.format(username))
+    pub_path = os.path.join(path, '{}_public.pem'.format(username))
+    public, private = rsa.export(pub_path, priv_path, password)
+    return public, private, pub_path, priv_path
 
 
 def reader(path, mode):
@@ -131,6 +141,15 @@ def writer(path, data, mode):
         pickle_writer(path, data)
     elif mode is 'c':
         crypt_writer(path, data)
+
+
+def deleter(path):
+    # If file exists, delete it
+    if os.path.isfile(path):
+        os.remove(path)
+    # Show an error if file doesn't exist
+    else:
+        print("Error: {} file not found".format(path))
 
 
 def head_tail(path, mode=None):

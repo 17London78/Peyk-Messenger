@@ -28,14 +28,14 @@ from ..Assets import BasicFunctions
 class RSA:
     """ Creates a set of private and public keys """
 
-    def __init__(self):
-        self.public, self.private = self._generator()
+    def __init__(self, strength):
+        self.public, self.private = self._generator(strength)
 
     @staticmethod
-    def _generator():
+    def _generator(strength):
         """ Generates a random set of keys """
 
-        private_set = _RSA.generate(4096)
+        private_set = _RSA.generate(strength)
         public_key = private_set.publickey()
         return public_key, private_set
 
@@ -44,8 +44,9 @@ class RSA:
 
         priv = self.private.exportKey('PEM', password)
         pub = self.public.exportKey('PEM')
-        BasicFunctions.binary_writer(priv_path, priv)
-        BasicFunctions.binary_writer(pub_path, pub)
+        BasicFunctions.writer(priv_path, priv, 'b')
+        BasicFunctions.writer(pub_path, pub, 'b')
+        return pub, priv
 
 
 class Encryptor:
@@ -58,7 +59,7 @@ class Encryptor:
             cipher_text = cipher.encrypt(message)
             return cipher_text
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.binary_reader(pub_key))
+            key = _RSA.importKey(BasicFunctions.reader(pub_key, 'b'))
             return encrypt(key)
         elif mode is 'b':
             key = _RSA.importKey(pub_key)
@@ -69,16 +70,16 @@ class Decryptor:
     """ Decrypting a message with receiver private key """
 
     @staticmethod
-    def decrypt(message, priv_key, paswd, mode):
+    def decrypt(message, priv_key, password, mode):
         def decrypt(private_key):
             cipher = PKCS1_OAEP.new(private_key)
             plaintext = cipher.decrypt(message)
             return plaintext
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.binary_reader(priv_key, paswd))
+            key = _RSA.importKey(BasicFunctions.reader(priv_key, password, 'b'))
             return decrypt(key)
         elif mode is 'b':
-            key = _RSA.importKey(priv_key, paswd)
+            key = _RSA.importKey(priv_key, password)
             return decrypt(key)
 
 
@@ -96,7 +97,7 @@ class Signature:
         if type(message) is str:
             message = message.encode('utf-8')
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.binary_reader(priv_key), paswd)
+            key = _RSA.importKey(BasicFunctions.reader(priv_key, 'b'), paswd)
             return sign(key)
         elif mode is 'b':
             key = _RSA.importKey(priv_key, paswd)
@@ -117,7 +118,7 @@ class Signature:
         if type(message) is str:
             message = message.encode('utf-8')
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.binary_reader(pub_key))
+            key = _RSA.importKey(BasicFunctions.reader(pub_key, 'b'))
             return verify(key)
         elif mode is 'b':
             key = _RSA.importKey(pub_key)

@@ -17,3 +17,18 @@ __email__ = "MahdiBaghbani@Protonmail.com"
 __version__ = "0.1-beta"
 __status__ = "Development"
 
+
+import importlib.util
+import platform
+
+
+def check_module(module_name):
+
+    spec = importlib.util.find_spec(module_name)
+    if spec is None:
+        return False
+    return True
+
+
+def check_system():
+    return platform.system()

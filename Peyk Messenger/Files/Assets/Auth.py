@@ -26,13 +26,6 @@ class Authenticator:
         self.path = first_path, second_path
         self.users, self.clients = self._load_database()
 
-    def _user_load(self):
-        users = BasicFunctions.reader(self.path[0], 'p')
-        for username in users:
-            user = users[username]
-            user.is_logged_in = False
-        return users
-
     def _load_database(self):
         users = {}
         clients = {}
@@ -41,6 +34,13 @@ class Authenticator:
         if os.path.isfile(self.path[1]):
             clients = BasicFunctions.reader(self.path[1], 'p')
         return users, clients
+
+    def _user_load(self):
+        users = BasicFunctions.reader(self.path[0], 'p')
+        for username in users:
+            user = users[username]
+            user.is_logged_in = False
+        return users
 
     def _save_u_to_database(self):
         BasicFunctions.writer(self.path[0], self.users, 'p')
@@ -121,8 +121,8 @@ class Authenticator:
 class User:
     def __init__(self, username, password, path):
         self.username = username
-        self.password = BasicFunctions.hash_password(password, username)
-        self. pub_key, self.priv_key, self.pub_path, self.priv_path = self._generate_rsa(username, self.password, path)
+        self.password = BasicFunctions.hash_password(password, self.username)
+        self. pub_key, self.priv_key, self.pub_path, self.priv_path = BasicFunctions.rsa_gen(username, 4096, self.password, path)
         self.is_logged_in = False
 
     def check_password(self, password):
@@ -137,14 +137,6 @@ class User:
                 raise InvalidPassword(self.username)
         else:
             raise NotLoggedInError(self.username)
-
-    @staticmethod
-    def _generate_rsa(username, password, path):
-        rsa = RSA.RSA()
-        priv_path = os.path.join(path, '{}_private.pem'.format(username))
-        pub_path = os.path.join(path, '{}_public.pem'.format(username))
-        rsa.export(priv_path, pub_path, password)
-        return rsa.public, rsa.private, pub_path, priv_path
 
 
 class Client:

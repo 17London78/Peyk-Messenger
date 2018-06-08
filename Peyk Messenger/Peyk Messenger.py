@@ -14,11 +14,15 @@ __email__ = "MahdiBaghbani@Protonmail.com"
 __version__ = "0.1-beta"
 __status__ = "Development"
 
+
 from Files import App
+from Files.Assets import Util
+
+sys_info = Util.check_system()
 
 
 def main():
-    App().run()
+    App(sys_info).run()
 
 
 if __name__ == '__main__':

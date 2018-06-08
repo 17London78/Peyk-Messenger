@@ -31,7 +31,7 @@ class App:
     def __init__(self, system_info):
         self.file_path = os.path.dirname(os.path.abspath(__file__))
         self.log = os.path.join(self.file_path, 'Assets/System log.txt')
-        self.info = system_info
+        self.sys_info = system_info
         self.intro_choices = {
             "1": self._signup,
             "2": self._signin,
@@ -63,14 +63,14 @@ class App:
             "5": self._quit
         }
 
-    @staticmethod
-    def _intro_menu():
-        print(Texts.intro_menu)
-
-    def _run(self):
+    def run(self):
         while True:
             self._intro_menu()
             self._intro_choice_selector()
+
+    @staticmethod
+    def _intro_menu():
+        print(Texts.intro_menu)
 
     def _intro_choice_selector(self):
         choice = input(Texts.enter_choice)
@@ -160,7 +160,7 @@ class App:
         if username in username_data:
             print(Texts.signup_acc_exists)
             time.sleep(0.5)
-            self._signup()
+            self._signup()  # TODO sign up again or exit
         time.sleep(0.25)
         password = input(Texts.password)
         try:
@@ -171,7 +171,7 @@ class App:
             print(Texts.signup_successful)
             print()
             time.sleep(0.5)
-            FileCrypt.file_crypt(self.info, path_dict['User'], password, 'e')
+            FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'e')
             username_data[username] = cas.cas.users[username].password
             BasicFunctions.writer(self.log, username_data, 'p')
             self._signin()
@@ -194,9 +194,9 @@ class App:
             if username in username_data:
                 password = input(Texts.password)
                 password_hash = BasicFunctions.hash_password(password, username)
-                if password_hash is username_data[username]:
+                if password_hash == username_data[username]:
                     path_dict = self._path_builder(username, 'b')
-                    FileCrypt.file_crypt(self.info, path_dict['User'], password, 'd')
+                    FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'd')
                     cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
                     if cas.login(username, password):
                         self.CAS = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
@@ -215,12 +215,12 @@ class App:
                         time.sleep(0.5)
                         print(Texts.login_error)
                         time.sleep(0.5)
-                        self._run()
+                        self.run()
                 else:
                     time.sleep(0.5)
                     print(Texts.login_error)
                     time.sleep(0.5)
-                    self._run()
+                    self.run()
             else:
                 print(Texts.login_wrong_username)
                 time.sleep(0.5)
@@ -808,7 +808,7 @@ Leave it empty if you don't want to change it, simply press ENTER""")
             print('Signing out ...')
             print()
             time.sleep(0.5)
-        self.CAS.signOut(self.username)
+        self.CAS.sign_out(self.username)
         self.server1st = None
         self.server2nd = None
         self.client_list = None
@@ -816,7 +816,7 @@ Leave it empty if you don't want to change it, simply press ENTER""")
         self.password = None
         self.pubKeyPath = None
         if mode is not 'q':
-            self._run()
+            self.run()
 
     def _quit(self, mode):
         if mode is 'i':
