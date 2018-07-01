@@ -38,11 +38,11 @@ class CAS:
     def change_password(self, username, old_password, new_password):
         self.cas.change_password(username, old_password, new_password)
 
-    def add_client(self, username, ip, port, pub_key_path):
-        self.cas.add_client(username, ip, port, pub_key_path)
+    def add_client(self, clientname, ip, port, pub_key_path):
+        self.cas.add_client(clientname, ip, port, pub_key_path)
 
-    def edit_client(self, username, name=None, ip=None, port=None, pub_key_path=None):
-        self.cas.edit_client(username, name, ip, port, pub_key_path)
+    def edit_client(self, clientname, name=None, ip=None, port=None, pub_key_path=None):
+        self.cas.edit_client(clientname, name, ip, port, pub_key_path)
 
-    def delete_client(self, username):
-        self.cas.delete_client(username)
+    def delete_client(self, clientname):
+        self.cas.delete_client(clientname)

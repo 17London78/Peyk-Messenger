@@ -15,7 +15,6 @@ __version__ = "0.1-beta"
 __status__ = "Development"
 
 import os
-from ..Ciphers import RSA
 from ..Assets import BasicFunctions
 
 
@@ -65,6 +64,24 @@ class Authenticator:
         else:
             raise UsernameDoesNotExists(username)
 
+    def login(self, username, password):
+        try:
+            user = self.users[username]
+        except KeyError:
+            return False
+        if user.is_logged_in is False:
+            if not user.check_password(password):
+                return False
+            user.is_logged_in = True
+            return True
+        else:
+            return False
+
+    def is_logged_in(self, username):
+        if username in self.users:
+            return self.users[username].is_logged_in
+        return False
+
     def add_client(self, client_name, ip, port, pub_key_path):
         if client_name in self.clients:
             raise UsernameAlreadyExists(client_name)
@@ -98,24 +115,6 @@ class Authenticator:
             self._save_c_to_database()
         else:
             raise ClientDoesNotExist(client_name)
-
-    def login(self, username, password):
-        try:
-            user = self.users[username]
-        except KeyError:
-            return False
-        if user.is_logged_in is False:
-            if not user.check_password(password):
-                return False
-            user.is_logged_in = True
-            return True
-        else:
-            return False
-
-    def is_logged_in(self, username):
-        if username in self.users:
-            return self.users[username].is_logged_in
-        return False
 
 
 class User:

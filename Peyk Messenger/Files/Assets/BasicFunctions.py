@@ -55,9 +55,9 @@ def hash_password(password, name=None):
     """ Hashes password for storing in database """
 
     if name is None:
-        hash_string = password
+        hash_string = password + 'Pa$$w0RDS'
     else:
-        hash_string = password + 'SaLty P@s$WoRDS'
+        hash_string = password + 'SaLty P@s$WoRDS' + name
     hash_string = hash_string.encode('utf8')
     return SHA3_512.new(hash_string).hexdigest()
 

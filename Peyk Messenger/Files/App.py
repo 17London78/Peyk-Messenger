@@ -63,94 +63,108 @@ class App:
             "5": self._quit
         }
 
-    def run(self):
+    def run(self, mode='t'):
         while True:
-            self._intro_menu()
+            self._intro_menu(mode)
             self._intro_choice_selector()
 
     @staticmethod
-    def _intro_menu():
+    def _intro_menu(mode):
+        if mode is 't':
+            print(Texts.intro_header)
         print(Texts.intro_menu)
 
     def _intro_choice_selector(self):
         choice = input(Texts.enter_choice)
         action = self.intro_choices.get(choice)
-        if action == self._quit:
+        if action is self._quit:
             action('i')
         if action:
             action()
         else:
-            print(Texts.not_valid.format(choice))
-            print()
+            print(Texts.not_valid.format(choice) + '\n')
             time.sleep(0.5)
             self._intro_choice_selector()
 
     def _path_builder(self, username, mode):
         """ Creating directories for the group server """
 
-        # Moving to /Data
-        data_folder = os.path.join(self.file_path, 'Data')
-        # Check if '/Data' directory already exits
-        if os.path.isdir(data_folder):
-            # Creating a directory for a user
-            user_folder = os.path.join(data_folder, username)
-            # Create directory
-            if mode is 'a':
-                try:
-                    os.makedirs(user_folder)
-                # Handling errors
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        raise  # TODO
-                else:
-                    # Check if directory created.
-                    if os.path.isdir(user_folder):
-                        # Joining all requires paths:
-                        # Data/username/Servers >>> a folder to save server profiles
-                        # Data/username/Clients >>> a folder to save client profiles
-                        # Data/username/Keys >>> a folder to save user's private and public keys
-                        name_list = ['Servers', 'Clients', 'Keys']
-                        address_dict = dict()
-                        for name in name_list:
-                            address_dict[name] = os.path.join(user_folder, name)
-                        for key in address_dict:
-                            # If path already exists
-                            if os.path.isdir(address_dict[key]):
-                                # Go to next element
-                                pass
-                            # If path doesn't exist
-                            else:
-                                try:
-                                    # Create directory
-                                    os.makedirs(address_dict[key])
-                                # Handling errors
-                                except OSError as e:
-                                    if e.errno != errno.EEXIST:
-                                        raise  # TODO
-                        address_dict['User'] = user_folder
-                        return address_dict
-            elif mode is 'b':
-                name_list = ['Servers', 'Clients', 'Keys']
-                address_dict = dict()
-                for name in name_list:
-                    address_dict[name] = os.path.join(user_folder, name)
-                address_dict['User'] = user_folder
-                return address_dict
-        # If path doesn't exist
-        else:
-            # Create directory
+        def path_list():
+            name_list = ['Servers', 'Clients', 'Keys']
+            address_dict = {name: os.path.join(user_folder, name) for name in name_list}
+            address_dict['User'] = user_folder
+            return address_dict
+
+        def makedir_handle(folder):
             try:
-                os.makedirs(data_folder)
+                # Create directory
+                os.makedirs(folder)
             # Handling errors
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise  # TODO
-            # Start again
-            return self._path_builder(username, mode)
+
+        # Moving to /Data
+        data_folder = os.path.join(self.file_path, 'Data')
+        user_folder = os.path.join(data_folder, username)
+        # Create directory
+        if mode is 'a':
+            for i in [data_folder, user_folder]:
+                # If path doesn't exist
+                if not os.path.isdir(i):
+                    # Create directory
+                    makedir_handle(i)
+            # Joining all requires paths:
+            # Data/username/Servers >>> a folder to save server profiles
+            # Data/username/Clients >>> a folder to save client profiles
+            # Data/username/Keys >>> a folder to save user's private and public keys
+            address = path_list()
+            for key in address:
+                # If path already exists
+                if not os.path.isdir(address[key]):
+                    # If path doesn't exist
+                    makedir_handle(address[key])
+            return address
+        elif mode is 'b':
+            return path_list()
+
+    def _password_loop(self, username_data, path_dict, cas, username, quest_state='f'):
+        def question():
+            answer = input(Texts.pass_question)
+            if answer.lower().startswith('y'):
+                return True
+            elif answer.lower().startswith('n'):
+                return False
+            else:
+                print(Texts.not_valid.format(answer))
+                time.sleep(0.5)
+                return False
+        if quest_state is 't':
+            state = question()
+            if state:
+                self._password_loop(username_data, path_dict, cas, username)
+            else:
+                self.run('f')
+        else:
+            password = input(Texts.password)
+            try:
+                print(Texts.creating_key)
+                cas.signup(username, password)
+                time.sleep(0.5)
+            except Auth.PasswordTooShort:
+                print(Texts.pass_short)
+                time.sleep(0.5)
+                self._password_loop(username_data, path_dict, cas, username, 't')
+            else:
+                print(Texts.signup_successful + '\n')
+                time.sleep(0.5)
+                FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'e')
+                username_data[username] = cas.cas.users[username].password
+                BasicFunctions.writer(self.log, username_data, 'p')
+                self._signin()
 
     def _signup(self):
-        print(Texts.signup)
-        print()
+        print(Texts.signup + '\n')
         time.sleep(0.5)
         if os.path.isfile(self.log):
             username_data = BasicFunctions.reader(self.log, 'p')
@@ -160,76 +174,51 @@ class App:
         if username in username_data:
             print(Texts.signup_acc_exists)
             time.sleep(0.5)
-            self._signup()  # TODO sign up again or exit
-        time.sleep(0.25)
-        password = input(Texts.password)
-        try:
-            path_dict = self._path_builder(username, 'a')
-            cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
-            cas.signup(username, password)
-            time.sleep(0.25)
-            print(Texts.signup_successful)
-            print()
-            time.sleep(0.5)
-            FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'e')
-            username_data[username] = cas.cas.users[username].password
-            BasicFunctions.writer(self.log, username_data, 'p')
-            self._signin()
-        except Auth.PasswordTooShort:
-            time.sleep(0.5)
-            print(Texts.pass_short)
-            time.sleep(0.5)
-            self._signup()
+            self.run('f')
+        path_dict = self._path_builder(username, 'a')
+        cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+        self._password_loop(username_data, path_dict, cas, username)
 
     def _signin(self):
         if os.path.isfile(self.log):
             username_data = BasicFunctions.reader(self.log, 'p')
-        else:
-            username_data = dict()
-        if len(username_data) is not 0:
-            print(Texts.login)
-            print()
-            time.sleep(0.25)
-            username = input(Texts.username)
-            if username in username_data:
-                password = input(Texts.password)
-                password_hash = BasicFunctions.hash_password(password, username)
-                if password_hash == username_data[username]:
-                    path_dict = self._path_builder(username, 'b')
-                    FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'd')
-                    cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
-                    if cas.login(username, password):
-                        self.CAS = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
-                        self.server1st = ServerManager.server_init(path_dict['Servers'], 'Group Servers.txt')
-                        self.server2nd = ServerManager.server_init(path_dict['Servers'], 'Self Servers.txt')
-                        self.client_list = list(self.CAS.cas.clients.keys())
-                        self.username = username
-                        user = self.CAS.cas.users[username]
-                        self.password = user.password
-                        self.user_keys = user.pub_key, user.priv_key
-                        time.sleep(0.25)
-                        print(Texts.login_success)
-                        time.sleep(0.25)
-                        self._dashboard()
-                    else:
-                        time.sleep(0.5)
-                        print(Texts.login_error)
-                        time.sleep(0.5)
-                        self.run()
-                else:
-                    time.sleep(0.5)
-                    print(Texts.login_error)
-                    time.sleep(0.5)
-                    self.run()
-            else:
-                print(Texts.login_wrong_username)
+            if len(username_data) is 0:
+                print(Texts.login_no_acc)
                 time.sleep(0.5)
-                self._signin()
+                self.run('f')
         else:
-            time.sleep(0.25)
             print(Texts.login_no_acc)
             time.sleep(0.5)
-            self._intro_choice_selector()
+            self.run('f')
+        username = input(Texts.username)
+        if username not in username_data:
+            print(Texts.login_wrong_username)
+            time.sleep(0.5)
+            self.run('f')
+        password = input(Texts.password)
+        password_hash = BasicFunctions.hash_password(password, username)
+        if not password_hash == username_data[username]:
+            print(Texts.login_error)
+            time.sleep(0.5)
+            self.run('f')
+        path_dict = self._path_builder(username, 'b')
+        FileCrypt.file_crypt(self.sys_info, path_dict['User'], password, 'd')
+        cas = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+        if cas.login(username, password):
+            self.CAS = AccountManager.CAS(path_dict['User'], path_dict['Clients'], path_dict['Keys'])
+            self.server1st = ServerManager.server_init(path_dict['Servers'], 'Group Servers.txt')
+            self.server2nd = ServerManager.server_init(path_dict['Servers'], 'Self Servers.txt')
+            self.client_list = list(self.CAS.cas.clients.keys())
+            self.username = username
+            self.password = self.CAS.cas.users[username].password
+            self.user_keys = self.CAS.cas.users[username].pub_key, self.CAS.cas.users[username].priv_key
+            print(Texts.login_success)
+            time.sleep(0.5)
+            self._dashboard()
+        else:
+            print(Texts.login_error)
+            time.sleep(0.5)
+            self.run('f')
 
     def _dashboard(self):
         while True:

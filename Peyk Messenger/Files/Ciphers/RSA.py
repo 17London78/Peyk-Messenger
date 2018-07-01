@@ -76,7 +76,7 @@ class Decryptor:
             plaintext = cipher.decrypt(message)
             return plaintext
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.reader(priv_key, password, 'b'))
+            key = _RSA.importKey(BasicFunctions.reader(priv_key, 'b'), password)
             return decrypt(key)
         elif mode is 'b':
             key = _RSA.importKey(priv_key, password)
@@ -87,7 +87,7 @@ class Signature:
     """ Digital signing and verifying signatures class """
 
     @staticmethod
-    def sign(message, priv_key, paswd, mode):
+    def sign(message, priv_key, password, mode):
         """ Signs a message with private key"""
 
         def sign(private_key):
@@ -97,10 +97,10 @@ class Signature:
         if type(message) is str:
             message = message.encode('utf-8')
         if mode is 'f':
-            key = _RSA.importKey(BasicFunctions.reader(priv_key, 'b'), paswd)
+            key = _RSA.importKey(BasicFunctions.reader(priv_key, 'b'), password)
             return sign(key)
         elif mode is 'b':
-            key = _RSA.importKey(priv_key, paswd)
+            key = _RSA.importKey(priv_key, password)
             return sign(key)
 
     @staticmethod

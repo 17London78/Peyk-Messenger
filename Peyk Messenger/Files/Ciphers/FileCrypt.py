@@ -58,5 +58,5 @@ def file_crypt(sys_info, path, password, mode):
         taes_list = path_finder(sys_info, path, 'taes')
         paes_list = path_finder(sys_info, path, 'paes')
         decryptor(taes_list, 'taes', 'txt')
-        decryptor(paes_list, 'paes', 'txt')
+        decryptor(paes_list, 'paes', 'pem')
 

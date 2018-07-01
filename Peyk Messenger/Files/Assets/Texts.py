@@ -17,22 +17,31 @@ __email__ = "MahdiBaghbani@Protonmail.com"
 __version__ = "0.1-beta"
 __status__ = "Development"
 
+intro_header = 'Welcome to Peyk Messenger v0.1 [BETA]'
 signup = '>>>> Signup [window] <<<<'
+pass_question = 'Do you want to enter password again? [Y/n]\n'
+creating_key = """Wait until Peyk creates a unique 4096bit RSA key for you
+this process takes (at most) one minute to complete."""
 login = '>>>> Login [window] <<<<'
 connect_server = '>>>> Connect to a Server [window] <<<<'
 register_server = '>>>> Server registering [window] <<<<'
 username = 'Enter your username:\n>'
 password = 'Enter your password:\n>'
-server_name =  "Enter server's name:\n>"
+server_name = "Enter server's name:\n>"
 server_ip = "Enter server's IPv4 address: \n>"
 server_port = "Enter server's port number:\n>"
 enter_choice_dashboard = 'Enter a valid choice from dashboard menu:\n>'
 enter_choice = 'Enter a valid choice:\n>'
 not_valid = '{} is not a valid choice!'
-intro_menu = """
-Welcome to Peyk Messenger v0.1 [BETA]
+server_password = "Enter server's password: (leave it empty if it's a public server) \n>"
+server_port_error = "You must enter a port number for server!"
+server_client_name = "Enter Associated client's name:\n>"
+server_no_profile = 'There is not any server profile available'
+server_start = 'Which server do you want to start?'
+server_welcome = 'You are now connected to the server at {} on port {}.'
 
-Select a number from this options:
+intro_menu = """
+>>> Enter your choice's number:
 
 1. signUp
 2. signIn
@@ -45,9 +54,9 @@ pass_short = """
 ====================================================
 """
 signup_successful = """
-========================================================
+=======================================================
 |+  Your account has been activated, log in please.  +|
-========================================================
+=======================================================
 """
 Signup_user_exists = """
 ====================================
@@ -86,6 +95,16 @@ login_no_acc = """
 |+              You have to SIGN UP first.                     +|
 =================================================================
 """
+server_reg_success = """
+=====================================
+|+ Server registered successfully! +|
+=====================================
+"""
+server_exists = """
+==================================
+|+  Server name already exists  +|
+==================================
+"""
 dashboard = """
 +++>>> Welcome to your dashboard dear {} <<<++
 
@@ -99,9 +118,6 @@ Select a number from this options:
 7. Sign out
 8. Quit
 """
-server_password: "Enter server's password: (leave it empty if it's a public server) \n>"
-server_port_error = 'You must enter a port number for server!'
-server_client_name = "Enter Associated client's name:\n>"
 be_server_menu = """
 >>>> Become a Server [window] <<<<
 
@@ -113,16 +129,4 @@ Select a number from this options:
 5. Back to dashboard
 6. Quit
     """
-server_reg_success = """
-=====================================
-|+ Server registered successfully! +|
-=====================================
-"""
-server_exists = """
-==================================
-|+  Server name already exists  +|
-==================================
-"""
-server_no_profile = 'There is not any server profile available'
-server_start = 'Which server do you want to start?'
-server_welcome = 'You are now connected to the server at {} on port {}.'
+

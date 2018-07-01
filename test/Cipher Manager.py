@@ -107,8 +107,8 @@ class Cipher:
 class Send(Cipher):
     """Send class for authenticated encryption"""
 
-    def __init__(self, username, pub_key, priv_key, priv_key_password, receiver_pub_key):
-        super(Send, self).__init__(username, pub_key, priv_key, priv_key_password, receiver_pub_key)
+    def __init__(self, username=None, pub_key=None, priv_key=None, priv_key_password=None, receiver_pub_key=None):
+        super(Send, self).__init__(self, username, pub_key, priv_key, priv_key_password, receiver_pub_key)
         self.aes = AES.AES()
         self.message = namedtuple('Message', 'signature keys cipher')
         self.s_message = namedtuple('Message to Server', 'keys cipher')

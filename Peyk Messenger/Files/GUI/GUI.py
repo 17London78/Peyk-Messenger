@@ -159,7 +159,7 @@ class Private(GUI):
 
 class Group(GUI):
     def __init__(self, ip, port, buffer, server_name, server, server_keys, password, username, keys, priv_key_password):
-        super(Private, self).__init__(ip, port, buffer, username, keys, priv_key_password)
+        super(Group, self).__init__(ip, port, buffer, username, keys, priv_key_password)
         self.server_name = server_name
         self.password = password
         self.receiver_pub_keys = dict()

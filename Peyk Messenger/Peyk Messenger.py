@@ -15,14 +15,34 @@ __version__ = "0.1-beta"
 __status__ = "Development"
 
 
+import sys
 from Files import App
 from Files.Assets import Util
 
-sys_info = Util.check_system()
+
+LIBRARIES = ['Crypto']
+
+
+def prepare(library):
+    sys_info = Util.check_system()
+    libraries_status = {i: Util.check_module(i) for i in library}
+    return sys_info, libraries_status
+
+
+def check(library_status):
+    if all(library_status):
+        return True
+    else:
+        return False
 
 
 def main():
-    App(sys_info).run()
+    data = prepare(LIBRARIES)
+    if check(data[1]):
+        App(data[0]).run()
+    else:
+        print()
+        sys.exit()
 
 
 if __name__ == '__main__':
